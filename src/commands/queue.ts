@@ -1,6 +1,7 @@
 import {
   ChatInputCommandInteraction,
   EmbedBuilder,
+  MessageFlags,
   SlashCommandBuilder,
 } from "discord.js";
 import { BotCommand } from "../index.js";
@@ -18,7 +19,7 @@ export const queueCommand: BotCommand = {
     if (!player?.queue.current) {
       await interaction.reply({
         content: "❌ No hay canciones en la cola.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }

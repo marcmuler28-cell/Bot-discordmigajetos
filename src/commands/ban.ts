@@ -2,6 +2,7 @@ import {
   ChatInputCommandInteraction,
   EmbedBuilder,
   GuildMember,
+  MessageFlags,
   PermissionFlagsBits,
   SlashCommandBuilder,
 } from "discord.js";
@@ -37,7 +38,7 @@ export const banCommand: BotCommand = {
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.BanMembers)) {
       await interaction.reply({
         content: "❌ No tienes permisos para banear usuarios.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -51,7 +52,7 @@ export const banCommand: BotCommand = {
       if (!member.bannable) {
         await interaction.reply({
           content: "❌ No puedo banear a este usuario. Puede tener un rol superior al mío.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         return;
       }
@@ -59,7 +60,7 @@ export const banCommand: BotCommand = {
       if (member.id === interaction.user.id) {
         await interaction.reply({
           content: "❌ No puedes banearte a ti mismo.",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         return;
       }
@@ -91,7 +92,7 @@ export const banCommand: BotCommand = {
     } catch {
       await interaction.reply({
         content: "❌ Ocurrió un error al intentar banear al usuario.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
   },

@@ -1,6 +1,7 @@
 import {
   ChatInputCommandInteraction,
   EmbedBuilder,
+  MessageFlags,
   PermissionFlagsBits,
   SlashCommandBuilder,
 } from "discord.js";
@@ -68,7 +69,7 @@ export const actualizarCommand: BotCommand = {
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
       await interaction.reply({
         content: "❌ Solo los administradores pueden usar este comando.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -83,12 +84,12 @@ export const actualizarCommand: BotCommand = {
     if (!nuevoApodo && !nuevaEdad && !nuevoPais && !nuevoEstado && !nuevaBio) {
       await interaction.reply({
         content: "❌ Debes especificar al menos un campo para actualizar.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
 
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const perfil = await obtenerUsuario(targetUser.id);
     if (!perfil) {

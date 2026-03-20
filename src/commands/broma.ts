@@ -1,9 +1,10 @@
 import {
   ChatInputCommandInteraction,
   EmbedBuilder,
+  Message,
+  MessageFlags,
   SlashCommandBuilder,
   TextChannel,
-  Message,
 } from "discord.js";
 import { BotCommand } from "../index.js";
 
@@ -24,7 +25,7 @@ export const bromaCommand: BotCommand = {
     if (objetivo.bot) {
       await interaction.reply({
         content: "naaaa pana, los bots no caen en eso jsjsjs",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -32,21 +33,21 @@ export const bromaCommand: BotCommand = {
     if (objetivo.id === interaction.user.id) {
       await interaction.reply({
         content: "bro... te querés hacer la broma a vos mismo? cringe jajaja",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
 
     const channel = interaction.channel as TextChannel;
     if (!channel) {
-      await interaction.reply({ content: "❌ No puedo operar en este canal.", ephemeral: true });
+      await interaction.reply({ content: "❌ No puedo operar en este canal.", flags: MessageFlags.Ephemeral });
       return;
     }
 
     // Confirmamos al que usó el comando sin que se vea en el chat
     await interaction.reply({
       content: `✅ Trampa activada para ${objetivo.username}, prepárate jsjsjs`,
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
 
     // El bot le pregunta al objetivo en el canal

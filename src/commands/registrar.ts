@@ -1,6 +1,7 @@
 import {
   ChatInputCommandInteraction,
   EmbedBuilder,
+  MessageFlags,
   SlashCommandBuilder,
 } from "discord.js";
 import { BotCommand } from "../index.js";
@@ -63,7 +64,7 @@ export const registrarCommand: BotCommand = {
     const estado = interaction.options.getString("estado", true);
     const bio = interaction.options.getString("bio") ?? "Sin descripción.";
 
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const yaRegistrado = await estaRegistrado(interaction.user.id);
     if (yaRegistrado) {

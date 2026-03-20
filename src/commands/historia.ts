@@ -1,6 +1,7 @@
 import {
   ActionRowBuilder,
   ChatInputCommandInteraction,
+  MessageFlags,
   ModalActionRowComponentBuilder,
   ModalBuilder,
   SlashCommandBuilder,
@@ -56,7 +57,7 @@ export const historiaCommand: BotCommand = {
           i.customId === "modal_historia" && i.user.id === interaction.user.id,
       });
 
-      await submitted.deferReply({ ephemeral: true });
+      await submitted.deferReply({ flags: MessageFlags.Ephemeral });
 
       const historia = submitted.fields.getTextInputValue("input_historia");
 

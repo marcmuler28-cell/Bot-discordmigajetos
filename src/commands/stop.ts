@@ -1,4 +1,8 @@
-import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
+import {
+  ChatInputCommandInteraction,
+  MessageFlags,
+  SlashCommandBuilder,
+} from "discord.js";
 import { BotCommand } from "../index.js";
 import { manager } from "../music/manager.js";
 
@@ -14,7 +18,7 @@ export const stopCommand: BotCommand = {
     if (!player) {
       await interaction.reply({
         content: "❌ No hay nada reproduciéndose.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }

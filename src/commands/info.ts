@@ -1,6 +1,7 @@
 import {
   ChatInputCommandInteraction,
   EmbedBuilder,
+  MessageFlags,
   SlashCommandBuilder,
 } from "discord.js";
 import { BotCommand } from "../index.js";
@@ -16,7 +17,7 @@ export const infoCommand: BotCommand = {
     if (!guild) {
       await interaction.reply({
         content: "Este comando solo puede usarse dentro de un servidor.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }

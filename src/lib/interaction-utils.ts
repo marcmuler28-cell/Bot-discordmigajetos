@@ -1,4 +1,7 @@
-import { ChatInputCommandInteraction } from "discord.js";
+import {
+  ChatInputCommandInteraction,
+  MessageFlags,
+} from "discord.js";
 
 const TIMEOUT_MS = 10_000;
 
@@ -28,7 +31,7 @@ export async function safeReply(
     if (interaction.replied || interaction.deferred) {
       await interaction.editReply({ content, embeds: [] });
     } else {
-      await interaction.reply({ content, ephemeral: true });
+      await interaction.reply({ content, flags: MessageFlags.Ephemeral });
     }
   } catch {
     // La interacción ya expiró, no hay nada que hacer

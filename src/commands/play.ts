@@ -1,6 +1,7 @@
 import {
   ChatInputCommandInteraction,
   GuildMember,
+  MessageFlags,
   SlashCommandBuilder,
 } from "discord.js";
 import { BotCommand } from "../index.js";
@@ -26,7 +27,7 @@ export const playCommand: BotCommand = {
     if (!voiceChannel) {
       await interaction.reply({
         content: "❌ Debes estar en un canal de voz para usar este comando.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }

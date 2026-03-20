@@ -1,6 +1,7 @@
 import {
   ChatInputCommandInteraction,
   EmbedBuilder,
+  MessageFlags,
   PermissionFlagsBits,
   SlashCommandBuilder,
   TextChannel,
@@ -25,7 +26,7 @@ export const clearCommand: BotCommand = {
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageMessages)) {
       await interaction.reply({
         content: "❌ No tienes permisos para borrar mensajes.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -36,13 +37,13 @@ export const clearCommand: BotCommand = {
     if (!channel || !("bulkDelete" in channel)) {
       await interaction.reply({
         content: "❌ Este comando solo funciona en canales de texto.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
 
     try {
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
       const deleted = await channel.bulkDelete(amount, true);
 

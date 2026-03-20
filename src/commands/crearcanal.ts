@@ -4,6 +4,7 @@ import {
   ChatInputCommandInteraction,
   EmbedBuilder,
   GuildBasedChannel,
+  MessageFlags,
   PermissionFlagsBits,
   SlashCommandBuilder,
   TextChannel,
@@ -121,7 +122,7 @@ export const crearcanalCommand: BotCommand = {
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageChannels)) {
       await interaction.reply({
         content: "❌ Necesitas el permiso de **Gestionar Canales** para usar este comando.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }

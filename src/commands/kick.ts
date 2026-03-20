@@ -2,6 +2,7 @@ import {
   ChatInputCommandInteraction,
   EmbedBuilder,
   GuildMember,
+  MessageFlags,
   PermissionFlagsBits,
   SlashCommandBuilder,
 } from "discord.js";
@@ -29,7 +30,7 @@ export const kickCommand: BotCommand = {
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.KickMembers)) {
       await interaction.reply({
         content: "❌ No tienes permisos para expulsar usuarios.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -41,7 +42,7 @@ export const kickCommand: BotCommand = {
     if (!member) {
       await interaction.reply({
         content: "❌ No se encontró al usuario en este servidor.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -49,7 +50,7 @@ export const kickCommand: BotCommand = {
     if (!member.kickable) {
       await interaction.reply({
         content: "❌ No puedo expulsar a este usuario. Puede tener un rol superior al mío.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -57,7 +58,7 @@ export const kickCommand: BotCommand = {
     if (member.id === interaction.user.id) {
       await interaction.reply({
         content: "❌ No puedes expulsarte a ti mismo.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -80,7 +81,7 @@ export const kickCommand: BotCommand = {
     } catch {
       await interaction.reply({
         content: "❌ Ocurrió un error al intentar expulsar al usuario.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
   },

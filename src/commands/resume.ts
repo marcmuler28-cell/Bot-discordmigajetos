@@ -1,4 +1,8 @@
-import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
+import {
+  ChatInputCommandInteraction,
+  MessageFlags,
+  SlashCommandBuilder,
+} from "discord.js";
 import { BotCommand } from "../index.js";
 import { manager } from "../music/manager.js";
 
@@ -14,7 +18,7 @@ export const resumeCommand: BotCommand = {
     if (!player) {
       await interaction.reply({
         content: "❌ No hay ningún reproductor activo.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -22,7 +26,7 @@ export const resumeCommand: BotCommand = {
     if (!player.paused) {
       await interaction.reply({
         content: "⚠️ La música no está pausada.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
