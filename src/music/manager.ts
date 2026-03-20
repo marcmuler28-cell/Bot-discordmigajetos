@@ -37,7 +37,7 @@ export function initLavalink(client: Client<true>) {
     },
     playerOptions: {
       clientBasedPositionUpdateInterval: 500,
-      defaultSearchPlatform: "ytmsearch" as SearchPlatform,
+      defaultSearchPlatform: "scsearch" as SearchPlatform,
       onDisconnect: {
         autoReconnect: true,
         destroyPlayer: false,
@@ -54,7 +54,7 @@ export function initLavalink(client: Client<true>) {
     if (!channel?.isTextBased()) return;
 
     const embed = new EmbedBuilder()
-      .setColor(0x1db954)
+      .setColor(0xff5500)
       .setTitle("🎵 Reproduciendo ahora")
       .setDescription(`**[${track.info.title}](${track.info.uri})**`)
       .addFields(
@@ -66,7 +66,7 @@ export function initLavalink(client: Client<true>) {
         }
       )
       .setThumbnail(track.info.artworkUrl ?? null)
-      .setFooter({ text: "Sistema de música con Lavalink" });
+      .setFooter({ text: "🔊 Música via SoundCloud" });
 
     await (channel as TextChannel).send({ embeds: [embed] });
   });
@@ -99,13 +99,12 @@ export function initLavalink(client: Client<true>) {
     console.warn(`⚠️ Nodo Lavalink desconectado: ${node.id}`);
   });
 
-  // Captura errores internos del NodeManager para evitar que cierren el proceso
   manager.nodeManager.on("error", (node, error) => {
     console.error(`⚠️ NodeManager error [${node?.id ?? "unknown"}]:`, error?.message || error);
   });
 
   manager.init(client.user.id, { shards: "auto", clientId: client.user.id });
-  console.log("🎵 Lavalink Manager iniciado.");
+  console.log("🎵 Lavalink Manager iniciado (SoundCloud).");
   return manager;
 }
 
@@ -118,5 +117,5 @@ export function formatDuration(ms: number): string {
   if (hours > 0) {
     return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
   }
-  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
