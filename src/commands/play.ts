@@ -7,14 +7,18 @@ import {
 import { BotCommand } from "../index.js";
 import { manager } from "../music/manager.js";
 
+function isSoundCloudUrl(query: string): boolean {
+  return query.startsWith("https://soundcloud.com/") || query.startsWith("https://on.soundcloud.com/");
+}
+
 export const playCommand: BotCommand = {
   data: new SlashCommandBuilder()
     .setName("play")
-    .setDescription("Reproduce una canción o la añade a la cola")
+    .setDescription("Reproduce una canción de SoundCloud — nombre o URL de SoundCloud")
     .addStringOption((opt) =>
       opt
         .setName("query")
-        .setDescription("Nombre de la canción, artista o URL")
+        .setDescription("Nombre de la canción, artista o URL de SoundCloud")
         .setRequired(true)
     ),
 
@@ -53,11 +57,12 @@ export const playCommand: BotCommand = {
         await player.connect();
       }
 
-      // En lavalink-client v2 la búsqueda se hace desde el player
-      const result = await player.search(
-        { query, source: "ytmsearch" },
-        interaction.user
-      );
+      // Si es URL de SoundCloud, la cargamos directamente; si no, buscamos en SC
+      const searchPayload = isSoundCloudUrl(query)
+        ? { query }
+        : { query, source: "scsearch" };
+
+      const result = await player.search(searchPayload, interaction.user);
 
       if (
         !result ||
@@ -65,7 +70,7 @@ export const playCommand: BotCommand = {
         result.loadType === "empty"
       ) {
         await interaction.editReply(
-          "❌ No encontré ninguna canción con esa búsqueda. Intenta con otro nombre."
+          "❌ No encontré nada en SoundCloud con esa búsqueda. Probá con otro nombre o pegá una URL de SoundCloud."
         );
         return;
       }
