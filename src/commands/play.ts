@@ -8,7 +8,23 @@ import { BotCommand } from "../index.js";
 import { manager } from "../music/manager.js";
 
 function isSoundCloudUrl(query: string): boolean {
-  return query.startsWith("https://soundcloud.com/") || query.startsWith("https://on.soundcloud.com/");
+  return (
+    query.startsWith("https://soundcloud.com/") ||
+    query.startsWith("https://on.soundcloud.com/") ||
+    query.startsWith("http://soundcloud.com/") ||
+    query.startsWith("http://on.soundcloud.com/")
+  );
+}
+
+// Resuelve URLs cortas de SoundCloud (on.soundcloud.com) al link real
+async function resolveScUrl(url: string): Promise<string> {
+  if (!url.includes("on.soundcloud.com")) return url;
+  try {
+    const res = await fetch(url, { method: "HEAD", redirect: "follow" });
+    return res.url || url;
+  } catch {
+    return url;
+  }
 }
 
 export const playCommand: BotCommand = {
@@ -36,7 +52,7 @@ export const playCommand: BotCommand = {
       return;
     }
 
-    const query = interaction.options.getString("query", true);
+    let query = interaction.options.getString("query", true);
     await interaction.deferReply();
 
     try {
@@ -57,10 +73,16 @@ export const playCommand: BotCommand = {
         await player.connect();
       }
 
-      // Si es URL de SoundCloud, la cargamos directamente; si no, buscamos en SC
-      const searchPayload = isSoundCloudUrl(query)
-        ? { query }
-        : { query, source: "scsearch" };
+      let searchPayload: { query: string; source?: string };
+
+      if (isSoundCloudUrl(query)) {
+        // Resolvemos la URL corta al link real si hace falta
+        const resolvedUrl = await resolveScUrl(query);
+        searchPayload = { query: resolvedUrl };
+      } else {
+        // Búsqueda por nombre en SoundCloud
+        searchPayload = { query, source: "scsearch" };
+      }
 
       const result = await player.search(searchPayload, interaction.user);
 
@@ -70,7 +92,7 @@ export const playCommand: BotCommand = {
         result.loadType === "empty"
       ) {
         await interaction.editReply(
-          "❌ No encontré nada en SoundCloud con esa búsqueda. Probá con otro nombre o pegá una URL de SoundCloud."
+          "❌ No encontré nada en SoundCloud. Probá con otro nombre o pegá una URL directa de SoundCloud."
         );
         return;
       }
