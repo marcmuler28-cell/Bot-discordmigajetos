@@ -37,7 +37,7 @@ export function initLavalink(client: Client<true>) {
     },
     playerOptions: {
       clientBasedPositionUpdateInterval: 500,
-      defaultSearchPlatform: "ytsearch" as SearchPlatform,
+      defaultSearchPlatform: "ytmsearch" as SearchPlatform,
       onDisconnect: {
         autoReconnect: true,
         destroyPlayer: false,

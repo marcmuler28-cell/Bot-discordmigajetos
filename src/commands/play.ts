@@ -55,7 +55,7 @@ export const playCommand: BotCommand = {
 
       // En lavalink-client v2 la búsqueda se hace desde el player
       const result = await player.search(
-        { query, source: "ytsearch" },
+        { query, source: "ytmsearch" },
         interaction.user
       );
 
