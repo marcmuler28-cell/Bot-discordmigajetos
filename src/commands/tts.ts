@@ -8,29 +8,17 @@ import * as MusicManager from "../music/manager.js";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-const VOICE_LANGS: Record<string, string> = {
-  Enrique:   "es",
-  Valentina: "pt",
-  Brian:     "en",
-  Justin:    "en",
-  Pierre:    "fr",
-  Klaus:     "de",
-};
-
 function buildTtsUrl(texto: string, voz: string): string {
   const ttsServerUrl = process.env.TTS_SERVER_URL;
 
   if (ttsServerUrl) {
-    // Servidor TTS propio (Coqui TTS en tu PC)
-    const lang = VOICE_LANGS[voz] ?? "es";
     const encoded = encodeURIComponent(texto);
-    return `${ttsServerUrl}/tts?text=${encoded}&lang=${lang}&voice=${voz}`;
+    return `${ttsServerUrl}/tts?text=${encoded}&lang=es&voice=${encodeURIComponent(voz)}`;
   }
 
   // Fallback: Google Translate TTS
-  const lang = VOICE_LANGS[voz] ?? "es";
   const encoded = encodeURIComponent(texto);
-  return `https://translate.google.com/translate_tts?ie=UTF-8&q=${encoded}&tl=${lang}&client=tw-ob&ttsspeed=1`;
+  return `https://translate.google.com/translate_tts?ie=UTF-8&q=${encoded}&tl=es&client=tw-ob&ttsspeed=1`;
 }
 
 export const ttsCommand: BotCommand = {
@@ -47,16 +35,13 @@ export const ttsCommand: BotCommand = {
     .addStringOption((opt) =>
       opt
         .setName("voz")
-        .setDescription("Elige la voz (por defecto: Enrique)")
-        .setRequired(false)
-        .addChoices(
-          { name: "🇪🇸 Enrique — español",              value: "Enrique"   },
-          { name: "🇧🇷 Valentina — portugués brasileño", value: "Valentina" },
-          { name: "🇬🇧 Brian — inglés británico",        value: "Brian"     },
-          { name: "🇺🇸 Justin — inglés americano",       value: "Justin"    },
-          { name: "🇫🇷 Pierre — francés",                value: "Pierre"    },
-          { name: "🇩🇪 Klaus — alemán",                  value: "Klaus"     }
+        .setDescription(
+          process.env.TTS_SERVER_URL
+            ? "Nombre de tu voz personalizada (ej: MiVoz, Enrique). Debe existir en la carpeta voices/"
+            : "Voz a usar (no hay servidor TTS configurado, se usa voz por defecto)"
         )
+        .setRequired(false)
+        .setMaxLength(50)
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
@@ -74,7 +59,8 @@ export const ttsCommand: BotCommand = {
     }
 
     const texto = interaction.options.getString("texto", true);
-    const voz = interaction.options.getString("voz") ?? "Enrique";
+    const voz = interaction.options.getString("voz") ?? "default";
+    const usingCustomServer = !!process.env.TTS_SERVER_URL;
 
     await interaction.deferReply({ ephemeral: true });
 
@@ -84,8 +70,6 @@ export const ttsCommand: BotCommand = {
       await interaction.editReply("❌ El sistema de audio no está listo todavía. Espera unos segundos y reintenta.");
       return;
     }
-
-    const usingCustomServer = !!process.env.TTS_SERVER_URL;
 
     try {
       const ttsUrl = buildTtsUrl(texto, voz);
@@ -125,7 +109,9 @@ export const ttsCommand: BotCommand = {
       const track = result.tracks[0];
       if (track.info) {
         track.info.title = `🔊 TTS: ${texto.slice(0, 50)}${texto.length > 50 ? "..." : ""}`;
-        track.info.author = usingCustomServer ? `Voz IA: ${voz}` : `Voz: ${voz}`;
+        track.info.author = usingCustomServer
+          ? `Voz IA: ${voz === "default" ? "por defecto" : voz}`
+          : "Voz: Google TTS";
       }
 
       player.queue.add(track);
@@ -134,11 +120,11 @@ export const ttsCommand: BotCommand = {
         await player.play({ paused: false });
         await interaction.editReply(
           usingCustomServer
-            ? `✅ Reproduciendo con voz IA **${voz}**: *"${texto}"*`
-            : `✅ Reproduciendo con voz **${voz}**: *"${texto}"*`
+            ? `✅ Reproduciendo con voz IA **${voz === "default" ? "por defecto" : voz}**: *"${texto}"*`
+            : `✅ Reproduciendo: *"${texto}"*`
         );
       } else {
-        await interaction.editReply(`➕ TTS en cola con voz **${voz}**: *"${texto}"*`);
+        await interaction.editReply(`➕ TTS en cola: *"${texto}"*`);
       }
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
