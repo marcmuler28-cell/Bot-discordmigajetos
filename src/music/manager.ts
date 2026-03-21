@@ -7,8 +7,6 @@ export function initLavalink(client: Client<true>) {
   const railwayHost = process.env.LAVALINK_HOST ?? "lavalink.railway.internal";
   const railwayPass = process.env.LAVALINK_PASSWORD ?? "migajeros123";
 
-  // Si es red interna de Railway usa puerto 2333 sin SSL,
-  // si es URL pública usa 443 con SSL
   const isInternal = railwayHost.endsWith(".railway.internal");
   const railwayPort = parseInt(process.env.LAVALINK_PORT ?? (isInternal ? "2333" : "443"));
   const railwaySecure = isInternal ? false : true;
@@ -16,23 +14,23 @@ export function initLavalink(client: Client<true>) {
   manager = new LavalinkManager({
     nodes: [
       {
-        // Nodo 1 — Railway propio (mismo proyecto, red interna)
-        authorization: railwayPass,
-        host: railwayHost,
-        port: railwayPort,
-        id: "railway-principal",
-        secure: railwaySecure,
+        // Nodo 1 — serenetia (principal mientras Railway tiene IP bloqueada por YouTube)
+        authorization: "hope you have a great day",
+        host: "lavalink.serenetia.com",
+        port: 443,
+        id: "serenetia-principal",
+        secure: true,
         requestSignalTimeoutMS: 30000,
         retryAmount: 5,
         retryDelay: 3000,
       },
       {
-        // Nodo 2 — serenetia (backup público)
-        authorization: "hope you have a great day",
-        host: "lavalink.serenetia.com",
-        port: 443,
-        id: "serenetia-backup",
-        secure: true,
+        // Nodo 2 — Railway propio (backup)
+        authorization: railwayPass,
+        host: railwayHost,
+        port: railwayPort,
+        id: "railway-backup",
+        secure: railwaySecure,
         requestSignalTimeoutMS: 30000,
         retryAmount: 3,
         retryDelay: 5000,
@@ -132,3 +130,4 @@ export function formatDuration(ms: number): string {
   }
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
+
