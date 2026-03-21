@@ -23,6 +23,7 @@ import { registrarCommand } from "./commands/registrar.js";
 import { actualizarCommand } from "./commands/actualizar.js";
 import { perfilCommand } from "./commands/perfil.js";
 import { rankingCommand } from "./commands/ranking.js";
+import { ttsCommand } from "./commands/tts.js";
 import { onReady } from "./events/ready.js";
 import { onMessageCreate } from "./events/messageCreate.js";
 import { safeReply } from "./lib/interaction-utils.js";
@@ -59,7 +60,7 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildVoiceStates, // Requerido para música
+    GatewayIntentBits.GuildVoiceStates,
   ],
 });
 
@@ -81,6 +82,7 @@ const allCommands: BotCommand[] = [
   actualizarCommand,
   perfilCommand,
   rankingCommand,
+  ttsCommand,
   // Música
   playCommand,
   skipCommand,
@@ -192,3 +194,4 @@ client.login(token).catch((err) => {
   console.error("❌ Error al iniciar sesión en Discord:", err);
   process.exit(1);
 });
+
