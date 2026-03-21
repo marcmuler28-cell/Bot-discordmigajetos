@@ -50,7 +50,7 @@ export const playCommand: BotCommand = {
           textChannelId: interaction.channelId,
           selfDeaf: true,
           selfMute: false,
-          volume: 65,
+          volume: 50,
         });
       } else {
         // Actualiza el canal de texto y voz por si cambió
