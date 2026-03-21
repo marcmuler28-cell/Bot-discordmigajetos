@@ -26,6 +26,7 @@ import { rankingCommand } from "./commands/ranking.js";
 import { ttsCommand } from "./commands/tts.js";
 import { onReady } from "./events/ready.js";
 import { onMessageCreate } from "./events/messageCreate.js";
+import { onGuildMemberAdd } from "./events/guildMemberAdd.js";
 import { safeReply } from "./lib/interaction-utils.js";
 // ── Música ──────────────────────────────────────────────────────────────────
 import { playCommand } from "./commands/play.js";
@@ -61,6 +62,7 @@ const client = new Client({
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildVoiceStates,
+    GatewayIntentBits.GuildMembers,
   ],
 });
 
@@ -108,6 +110,9 @@ client.once(Events.ClientReady, (readyClient) => {
 client.on("raw", (d) => {
   manager?.sendRawData(d).catch(() => {});
 });
+
+client.on(Events.MessageCreate, onMessageCreate);
+client.on(Events.GuildMemberAdd, onGuildMemberAdd);
 
 client.on(Events.MessageCreate, onMessageCreate);
 
