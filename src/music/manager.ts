@@ -4,41 +4,30 @@ import { Client, EmbedBuilder, TextChannel } from "discord.js";
 export let manager: LavalinkManager;
 
 export function initLavalink(client: Client<true>) {
-  const railwayHost = process.env.LAVALINK_HOST ?? "lavalink-production-cda1.up.railway.app";
+  const railwayHost = process.env.LAVALINK_HOST ?? "lavalink-production-1b3e.up.railway.app";
   const railwayPort = parseInt(process.env.LAVALINK_PORT ?? "443");
   const railwayPass = process.env.LAVALINK_PASSWORD ?? "migajeros123";
 
   manager = new LavalinkManager({
     nodes: [
       {
-        // Nodo principal — YouTube URL + ytsearch confirmados funcionando
-        authorization: "hope you have a great day",
-        host: "lavalink.serenetia.com",
-        port: 443,
-        id: "serenetia-primary",
+        // Nodo principal — Railway propio con soporte YouTube
+        authorization: railwayPass,
+        host: railwayHost,
+        port: railwayPort,
+        id: "railway-principal",
         secure: true,
         requestSignalTimeoutMS: 30000,
         retryAmount: 5,
         retryDelay: 3000,
       },
       {
-        // Nodo backup — Railway propio (SoundCloud + red interna)
-        authorization: railwayPass,
-        host: railwayHost,
-        port: railwayPort,
-        id: "railway-backup",
+        // Nodo backup — público con YouTube
+        authorization: "hope you have a great day",
+        host: "lavalink.serenetia.com",
+        port: 443,
+        id: "serenetia-backup",
         secure: true,
-        requestSignalTimeoutMS: 30000,
-        retryAmount: 3,
-        retryDelay: 5000,
-      },
-      {
-        // Nodo terciario
-        authorization: "youshallnotpass",
-        host: "lavalink.jirayu.net",
-        port: 13592,
-        id: "jirayu-tertiary",
-        secure: false,
         requestSignalTimeoutMS: 30000,
         retryAmount: 3,
         retryDelay: 5000,
