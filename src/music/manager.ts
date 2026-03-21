@@ -4,29 +4,34 @@ import { Client, EmbedBuilder, TextChannel } from "discord.js";
 export let manager: LavalinkManager;
 
 export function initLavalink(client: Client<true>) {
-  const railwayHost = process.env.LAVALINK_HOST ?? "lavalink-production-1b3e.up.railway.app";
-  const railwayPort = parseInt(process.env.LAVALINK_PORT ?? "443");
+  const railwayHost = process.env.LAVALINK_HOST ?? "lavalink.railway.internal";
   const railwayPass = process.env.LAVALINK_PASSWORD ?? "migajeros123";
+
+  // Si es red interna de Railway usa puerto 2333 sin SSL,
+  // si es URL pública usa 443 con SSL
+  const isInternal = railwayHost.endsWith(".railway.internal");
+  const railwayPort = parseInt(process.env.LAVALINK_PORT ?? (isInternal ? "2333" : "443"));
+  const railwaySecure = isInternal ? false : true;
 
   manager = new LavalinkManager({
     nodes: [
       {
-        // Nodo 1 — serenetia (estable, YouTube funciona)
-        authorization: "hope you have a great day",
-        host: "lavalink.serenetia.com",
-        port: 443,
-        id: "serenetia-primary",
-        secure: true,
+        // Nodo 1 — Railway propio (mismo proyecto, red interna)
+        authorization: railwayPass,
+        host: railwayHost,
+        port: railwayPort,
+        id: "railway-principal",
+        secure: railwaySecure,
         requestSignalTimeoutMS: 30000,
         retryAmount: 5,
         retryDelay: 3000,
       },
       {
-        // Nodo 2 — Railway propio (backup, YouTube con plugin)
-        authorization: railwayPass,
-        host: railwayHost,
-        port: railwayPort,
-        id: "railway-backup",
+        // Nodo 2 — serenetia (backup público)
+        authorization: "hope you have a great day",
+        host: "lavalink.serenetia.com",
+        port: 443,
+        id: "serenetia-backup",
         secure: true,
         requestSignalTimeoutMS: 30000,
         retryAmount: 3,
