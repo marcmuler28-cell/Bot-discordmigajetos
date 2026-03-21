@@ -4,36 +4,40 @@ import { Client, EmbedBuilder, TextChannel } from "discord.js";
 export let manager: LavalinkManager;
 
 export function initLavalink(client: Client<true>) {
+  const railwayHost = process.env.LAVALINK_HOST ?? "lavalink-production-cda1.up.railway.app";
+  const railwayPort = parseInt(process.env.LAVALINK_PORT ?? "443");
+  const railwayPass = process.env.LAVALINK_PASSWORD ?? "migajeros123";
+
   manager = new LavalinkManager({
     nodes: [
       {
-        // Nodo principal — soporta SoundCloud con LavaSrc plugin
-        authorization: "https://dsc.gg/ajidevserver",
-        host: "lavalinkv4.serenetia.com",
-        port: 443,
-        id: "serenetia-v4",
+        // Nodo principal — Railway (misma red, baja latencia)
+        authorization: railwayPass,
+        host: railwayHost,
+        port: railwayPort,
+        id: "railway-primary",
         secure: true,
         requestSignalTimeoutMS: 30000,
         retryAmount: 5,
-        retryDelay: 5000,
+        retryDelay: 3000,
       },
       {
-        // Nodo backup — soporta SoundCloud
+        // Nodo backup — serenetia con YouTube + SoundCloud
         authorization: "https://dsc.gg/ajidevserver",
         host: "lavalinkv4.serenetia.com",
-        port: 80,
-        id: "serenetia-v4-http",
-        secure: false,
+        port: 443,
+        id: "serenetia-backup",
+        secure: true,
         requestSignalTimeoutMS: 30000,
         retryAmount: 3,
         retryDelay: 5000,
       },
       {
-        // Tercer nodo de respaldo
+        // Nodo terciario — jirayu
         authorization: "youshallnotpass",
         host: "lavalink.jirayu.net",
         port: 13592,
-        id: "jirayu-backup",
+        id: "jirayu-tertiary",
         secure: false,
         requestSignalTimeoutMS: 30000,
         retryAmount: 3,
@@ -66,6 +70,9 @@ export function initLavalink(client: Client<true>) {
     const channel = client.channels.cache.get(player.textChannelId);
     if (!channel?.isTextBased()) return;
 
+    // Normalizar volumen al 50% para evitar saturación
+    try { await player.setVolume(50); } catch {}
+
     const embed = new EmbedBuilder()
       .setColor(0xff5500)
       .setTitle("🎵 Reproduciendo ahora")
@@ -79,7 +86,7 @@ export function initLavalink(client: Client<true>) {
         }
       )
       .setThumbnail(track.info.artworkUrl ?? null)
-      .setFooter({ text: "🔊 Música via SoundCloud" });
+      .setFooter({ text: `🔊 Nodo: ${player.node?.id ?? "desconocido"}` });
 
     await (channel as TextChannel).send({ embeds: [embed] });
   });
@@ -89,7 +96,7 @@ export function initLavalink(client: Client<true>) {
     const channel = client.channels.cache.get(player.textChannelId);
     if (!channel?.isTextBased()) return;
     await (channel as TextChannel).send(
-      `❌ Error al reproducir **${track?.info?.title || "la canción"}**. Saltando a la siguiente...`
+      `❌ Error al reproducir **${track?.info?.title || "la canción"}**. Saltando...`
     );
   });
 
@@ -101,15 +108,15 @@ export function initLavalink(client: Client<true>) {
   });
 
   manager.on("nodeError", (node, error) => {
-    console.error(`❌ Error en nodo Lavalink [${node.id}]:`, error?.message || error);
+    console.error(`❌ Error en nodo [${node.id}]:`, error?.message || error);
   });
 
   manager.on("nodeConnect", (node) => {
-    console.log(`✅ Nodo Lavalink conectado: ${node.id}`);
+    console.log(`✅ Nodo conectado: ${node.id}`);
   });
 
   manager.on("nodeDisconnect", (node) => {
-    console.warn(`⚠️ Nodo Lavalink desconectado: ${node.id}`);
+    console.warn(`⚠️ Nodo desconectado: ${node.id}`);
   });
 
   manager.nodeManager.on("error", (node, error) => {
@@ -117,7 +124,7 @@ export function initLavalink(client: Client<true>) {
   });
 
   manager.init(client.user.id, { shards: "auto", clientId: client.user.id });
-  console.log("🎵 Lavalink Manager iniciado (SoundCloud).");
+  console.log("🎵 Lavalink Manager iniciado.");
   return manager;
 }
 
