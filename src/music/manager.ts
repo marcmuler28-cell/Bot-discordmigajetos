@@ -4,36 +4,18 @@ import { Client, EmbedBuilder, TextChannel } from "discord.js";
 export let manager: LavalinkManager;
 
 export function initLavalink(client: Client<true>) {
-  const railwayHost = process.env.LAVALINK_HOST ?? "lavalink.railway.internal";
-  const railwayPass = process.env.LAVALINK_PASSWORD ?? "migajeros123";
-
-  const isInternal = railwayHost.endsWith(".railway.internal");
-  const railwayPort = parseInt(process.env.LAVALINK_PORT ?? (isInternal ? "2333" : "443"));
-  const railwaySecure = isInternal ? false : true;
-
   manager = new LavalinkManager({
     nodes: [
       {
-        // Nodo 1 — serenetia (principal mientras Railway tiene IP bloqueada por YouTube)
+        // Nodo único — serenetia (Railway IP bloqueada por YouTube temporalmente)
         authorization: "hope you have a great day",
         host: "lavalink.serenetia.com",
         port: 443,
-        id: "serenetia-principal",
+        id: "serenetia",
         secure: true,
         requestSignalTimeoutMS: 30000,
         retryAmount: 5,
         retryDelay: 3000,
-      },
-      {
-        // Nodo 2 — Railway propio (backup)
-        authorization: railwayPass,
-        host: railwayHost,
-        port: railwayPort,
-        id: "railway-backup",
-        secure: railwaySecure,
-        requestSignalTimeoutMS: 30000,
-        retryAmount: 3,
-        retryDelay: 5000,
       },
     ],
     sendToShard: (guildId, payload) => {
