@@ -11,22 +11,22 @@ export function initLavalink(client: Client<true>) {
   manager = new LavalinkManager({
     nodes: [
       {
-        // Nodo principal — Railway propio con soporte YouTube
-        authorization: railwayPass,
-        host: railwayHost,
-        port: railwayPort,
-        id: "railway-principal",
+        // Nodo 1 — serenetia (estable, YouTube funciona)
+        authorization: "hope you have a great day",
+        host: "lavalink.serenetia.com",
+        port: 443,
+        id: "serenetia-primary",
         secure: true,
         requestSignalTimeoutMS: 30000,
         retryAmount: 5,
         retryDelay: 3000,
       },
       {
-        // Nodo backup — público con YouTube
-        authorization: "hope you have a great day",
-        host: "lavalink.serenetia.com",
-        port: 443,
-        id: "serenetia-backup",
+        // Nodo 2 — Railway propio (backup, YouTube con plugin)
+        authorization: railwayPass,
+        host: railwayHost,
+        port: railwayPort,
+        id: "railway-backup",
         secure: true,
         requestSignalTimeoutMS: 30000,
         retryAmount: 3,
