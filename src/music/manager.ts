@@ -7,23 +7,36 @@ export function initLavalink(client: Client<true>) {
   manager = new LavalinkManager({
     nodes: [
       {
-        authorization: process.env.LAVALINK_PASSWORD || "hope you have a great day",
-        host: process.env.LAVALINK_HOST || "lavalink.serenetia.com",
-        port: Number(process.env.LAVALINK_PORT) || 443,
-        id: "main-node",
+        // Nodo principal — soporta SoundCloud con LavaSrc plugin
+        authorization: "https://dsc.gg/ajidevserver",
+        host: "lavalinkv4.serenetia.com",
+        port: 443,
+        id: "serenetia-v4",
         secure: true,
         requestSignalTimeoutMS: 30000,
         retryAmount: 5,
         retryDelay: 5000,
       },
       {
+        // Nodo backup — soporta SoundCloud
+        authorization: "https://dsc.gg/ajidevserver",
+        host: "lavalinkv4.serenetia.com",
+        port: 80,
+        id: "serenetia-v4-http",
+        secure: false,
+        requestSignalTimeoutMS: 30000,
+        retryAmount: 3,
+        retryDelay: 5000,
+      },
+      {
+        // Tercer nodo de respaldo
         authorization: "youshallnotpass",
         host: "lavalink.jirayu.net",
         port: 13592,
-        id: "backup-node",
+        id: "jirayu-backup",
         secure: false,
         requestSignalTimeoutMS: 30000,
-        retryAmount: 5,
+        retryAmount: 3,
         retryDelay: 5000,
       },
     ],
