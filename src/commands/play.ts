@@ -71,7 +71,7 @@ export const playCommand: BotCommand = {
       if (isUrl(query)) {
         result = await player.search({ query }, interaction.user);
       } else {
-        result = await player.search({ query, source: "scsearch" }, interaction.user);
+        result = await player.search({ query, source: "ytsearch" }, interaction.user);
         if (!result || result.loadType === "error" || result.loadType === "empty") {
           result = await player.search({ query, source: "ytmsearch" }, interaction.user);
         }
