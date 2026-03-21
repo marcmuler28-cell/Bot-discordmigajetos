@@ -6,7 +6,7 @@ Servidor TTS con Chatterbox (ResembleAI) para Bot de Discord
 - Supera a ElevenLabs en calidad
 
 Instalación (solo esto):
-  pip install chatterbox-tts fastapi uvicorn
+  pip install chatterbox-tts fastapi uvicorn torch torchaudio
 
 Uso:
   python tts_server.py
@@ -23,13 +23,14 @@ Exponer a internet:
 
 import io
 import os
+from contextlib import asynccontextmanager
+from typing import List, Optional
+
 import torch
 import torchaudio
 import uvicorn
 from fastapi import FastAPI, Query
 from fastapi.responses import JSONResponse, StreamingResponse
-
-app = FastAPI(title="Chatterbox TTS Server para Discord Bot")
 
 # Carpeta donde pones tus archivos de voz para clonar
 VOICES_DIR = "voices"
@@ -38,18 +39,20 @@ os.makedirs(VOICES_DIR, exist_ok=True)
 # Caché del modelo (se carga una sola vez)
 _model = None
 
+
 def get_model():
     global _model
     if _model is None:
         from chatterbox.tts import ChatterboxTTS
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        print(f"[TTS] Cargando modelo Chatterbox en {device}...")
+        print(f"[TTS] Cargando modelo Chatterbox en {device.upper()}...")
+        print("[TTS] La primera vez puede tardar varios minutos (descarga ~1.5GB)...")
         _model = ChatterboxTTS.from_pretrained(device=device)
-        print(f"[TTS] ✅ Modelo listo en {device.upper()}")
+        print(f"[TTS] Modelo listo en {device.upper()}")
     return _model
 
 
-def list_voices() -> list[str]:
+def list_voices() -> List[str]:
     """Lista los archivos de voz disponibles en la carpeta voices/"""
     if not os.path.exists(VOICES_DIR):
         return []
@@ -60,7 +63,7 @@ def list_voices() -> list[str]:
     ]
 
 
-def find_voice_file(voice_name: str) -> str | None:
+def find_voice_file(voice_name: str) -> Optional[str]:
     """Busca el archivo de voz por nombre (sin extensión)."""
     for ext in [".wav", ".mp3"]:
         path = os.path.join(VOICES_DIR, voice_name + ext)
@@ -69,16 +72,22 @@ def find_voice_file(voice_name: str) -> str | None:
     return None
 
 
-@app.on_event("startup")
-async def startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Arranque: pre-cargar el modelo
     print("[TTS] Pre-cargando modelo Chatterbox...")
     get_model()
     voices = list_voices()
     if voices:
         print(f"[TTS] Voces disponibles: {', '.join(voices)}")
     else:
-        print(f"[TTS] ⚠️  No hay voces en '{VOICES_DIR}/'. El bot usará voz por defecto.")
-        print(f"[TTS]    Agrega archivos .wav a la carpeta '{VOICES_DIR}/' para clonar voces.")
+        print(f"[TTS] Sin voces en '{VOICES_DIR}/'. Se usará voz por defecto.")
+        print(f"[TTS] Agrega archivos .wav a '{VOICES_DIR}/' para clonar voces.")
+    yield
+    # Apagado: nada que limpiar
+
+
+app = FastAPI(title="Chatterbox TTS Server para Discord Bot", lifespan=lifespan)
 
 
 @app.get("/")
@@ -109,19 +118,17 @@ async def text_to_speech(
     lang: str = Query("es", description="Idioma: es, en, pt, fr, de"),
     voice: str = Query("default", description="Nombre de la voz (archivo en la carpeta voices/)"),
     exaggeration: float = Query(0.5, description="Intensidad emocional (0.25=calmado, 0.75=expresivo)"),
-    cfg: float = Query(0.5, description="Control de ritmo (0.3=rápido, 0.7=lento)"),
+    cfg: float = Query(0.5, description="Control de ritmo (0.3=rapido, 0.7=lento)"),
 ):
     """
-    Convierte texto en audio usando clonación de voz.
+    Convierte texto en audio WAV usando clonación de voz.
     Si no hay archivo de voz, usa la voz por defecto del modelo.
     """
     if not text.strip():
-        return JSONResponse(status_code=400, content={"error": "El texto no puede estar vacío"})
+        return JSONResponse(status_code=400, content={"error": "El texto no puede estar vacio"})
 
     try:
         model = get_model()
-
-        # Buscar archivo de voz para clonar
         voice_path = find_voice_file(voice)
 
         if voice_path:
@@ -133,19 +140,24 @@ async def text_to_speech(
                 cfg_weight=cfg,
             )
         else:
-            print(f"[TTS] Voz '{voice}' no encontrada, usando voz por defecto")
+            if voice != "default":
+                print(f"[TTS] Voz '{voice}' no encontrada, usando voz por defecto")
             wav = model.generate(
                 text,
                 exaggeration=exaggeration,
                 cfg_weight=cfg,
             )
 
-        # Convertir tensor a bytes WAV en memoria
+        # Asegurar que el tensor tenga la forma correcta (channels, samples)
+        if wav.dim() == 1:
+            wav = wav.unsqueeze(0)
+
+        # Guardar en memoria como WAV
         buf = io.BytesIO()
-        torchaudio.save(buf, wav, model.sr, format="wav")
+        torchaudio.save(buf, wav.cpu(), model.sr, format="wav")
         buf.seek(0)
 
-        print(f"[TTS] ✅ Audio generado: '{text[:40]}...' | Voz: {voice}")
+        print(f"[TTS] Audio generado: '{text[:50]}' | Voz: {voice}")
 
         return StreamingResponse(
             buf,
@@ -158,17 +170,18 @@ async def text_to_speech(
         )
 
     except Exception as e:
-        print(f"[TTS] ❌ Error: {e}")
+        print(f"[TTS] Error: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
 if __name__ == "__main__":
     port = int(os.environ.get("TTS_PORT", 5002))
-    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    print("  🎙️  Servidor TTS con Chatterbox (ResembleAI)")
-    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    print(f"  📍 URL local:  http://localhost:{port}")
-    print(f"  📁 Carpeta de voces: {os.path.abspath(VOICES_DIR)}/")
-    print("  🎤 Para clonar tu voz: pon un archivo .wav en la carpeta voices/")
-    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    uvicorn.run(app, host="0.0.0.0", port=port, log_level="warning")
+    print("=" * 52)
+    print("  Servidor TTS con Chatterbox (ResembleAI)")
+    print("=" * 52)
+    print(f"  URL local:       http://localhost:{port}")
+    print(f"  Carpeta voces:   {os.path.abspath(VOICES_DIR)}/")
+    print(f"  GPU disponible:  {'Si (CUDA)' if torch.cuda.is_available() else 'No (CPU)'}")
+    print("  Para clonar voz: pon un .wav en la carpeta voices/")
+    print("=" * 52)
+    uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
