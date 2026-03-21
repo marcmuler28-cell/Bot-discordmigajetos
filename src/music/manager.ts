@@ -11,22 +11,22 @@ export function initLavalink(client: Client<true>) {
   manager = new LavalinkManager({
     nodes: [
       {
-        // Nodo principal — Railway (misma red, baja latencia)
-        authorization: railwayPass,
-        host: railwayHost,
-        port: railwayPort,
-        id: "railway-primary",
+        // Nodo principal — serenetia (YouTube + SoundCloud confirmados)
+        authorization: "https://dsc.gg/ajidevserver",
+        host: "lavalinkv4.serenetia.com",
+        port: 443,
+        id: "serenetia-primary",
         secure: true,
         requestSignalTimeoutMS: 30000,
         retryAmount: 5,
         retryDelay: 3000,
       },
       {
-        // Nodo backup — serenetia con YouTube + SoundCloud
-        authorization: "https://dsc.gg/ajidevserver",
-        host: "lavalinkv4.serenetia.com",
-        port: 443,
-        id: "serenetia-backup",
+        // Nodo backup — Railway (SoundCloud, menor latencia en la red)
+        authorization: railwayPass,
+        host: railwayHost,
+        port: railwayPort,
+        id: "railway-backup",
         secure: true,
         requestSignalTimeoutMS: 30000,
         retryAmount: 3,
