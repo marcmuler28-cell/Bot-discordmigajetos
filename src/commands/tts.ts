@@ -10,14 +10,24 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 const VOICE_LANGS: Record<string, string> = {
   Enrique:   "es",
-  Valentina: "pt-BR",
-  Brian:     "en-GB",
+  Valentina: "pt",
+  Brian:     "en",
   Justin:    "en",
   Pierre:    "fr",
   Klaus:     "de",
 };
 
 function buildTtsUrl(texto: string, voz: string): string {
+  const ttsServerUrl = process.env.TTS_SERVER_URL;
+
+  if (ttsServerUrl) {
+    // Servidor TTS propio (Coqui TTS en tu PC)
+    const lang = VOICE_LANGS[voz] ?? "es";
+    const encoded = encodeURIComponent(texto);
+    return `${ttsServerUrl}/tts?text=${encoded}&lang=${lang}&voice=${voz}`;
+  }
+
+  // Fallback: Google Translate TTS
   const lang = VOICE_LANGS[voz] ?? "es";
   const encoded = encodeURIComponent(texto);
   return `https://translate.google.com/translate_tts?ie=UTF-8&q=${encoded}&tl=${lang}&client=tw-ob&ttsspeed=1`;
@@ -75,6 +85,8 @@ export const ttsCommand: BotCommand = {
       return;
     }
 
+    const usingCustomServer = !!process.env.TTS_SERVER_URL;
+
     try {
       const ttsUrl = buildTtsUrl(texto, voz);
 
@@ -113,14 +125,18 @@ export const ttsCommand: BotCommand = {
       const track = result.tracks[0];
       if (track.info) {
         track.info.title = `🔊 TTS: ${texto.slice(0, 50)}${texto.length > 50 ? "..." : ""}`;
-        track.info.author = `Voz: ${voz}`;
+        track.info.author = usingCustomServer ? `Voz IA: ${voz}` : `Voz: ${voz}`;
       }
 
       player.queue.add(track);
 
       if (!player.playing && !player.paused) {
         await player.play({ paused: false });
-        await interaction.editReply(`✅ Reproduciendo con voz **${voz}**: *"${texto}"*`);
+        await interaction.editReply(
+          usingCustomServer
+            ? `✅ Reproduciendo con voz IA **${voz}**: *"${texto}"*`
+            : `✅ Reproduciendo con voz **${voz}**: *"${texto}"*`
+        );
       } else {
         await interaction.editReply(`➕ TTS en cola con voz **${voz}**: *"${texto}"*`);
       }
@@ -131,4 +147,3 @@ export const ttsCommand: BotCommand = {
     }
   },
 } as unknown as BotCommand;
-
