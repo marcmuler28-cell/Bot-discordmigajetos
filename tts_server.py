@@ -1,10 +1,9 @@
 """
-Servidor TTS con Coqui TTS para Bot de Discord
-Genera audio de alta calidad en español y otros idiomas
-Autor: Tu bot de Discord
+Servidor TTS con edge-tts para Bot de Discord
+Voces neurales de Microsoft - Sin compilación, funciona en Windows
 
-Instalación:
-  pip install TTS fastapi uvicorn soundfile
+Instalación (solo esto, sin errores):
+  pip install edge-tts fastapi uvicorn
 
 Uso:
   python tts_server.py
@@ -13,106 +12,103 @@ Luego exponer con Cloudflare Tunnel:
   cloudflared tunnel --url http://localhost:5002
 """
 
+import asyncio
 import io
 import os
-import tempfile
-import warnings
-warnings.filterwarnings("ignore")
 
-from fastapi import FastAPI, Query
-from fastapi.responses import StreamingResponse, JSONResponse
+import edge_tts
 import uvicorn
+from fastapi import FastAPI, Query
+from fastapi.responses import JSONResponse, StreamingResponse
 
 app = FastAPI(title="TTS Server para Discord Bot")
 
-# Modelos disponibles por idioma
-MODELS = {
-    "es": "tts_models/es/mai/tacotron2-DDC",       # Español - rápido y ligero
-    "en": "tts_models/en/ljspeech/tacotron2-DDC",  # Inglés
-    "multilingual": "tts_models/multilingual/multi-dataset/xtts_v2",  # Multi-idioma HD
+# Voces neurales por voz del bot
+# Todas son voces de alta calidad de Microsoft Edge
+VOCES = {
+    "Enrique":   "es-ES-AlvaroNeural",     # Español España, voz masculina
+    "Valentina": "es-MX-DaliaNeural",      # Español México, voz femenina
+    "Brian":     "en-GB-RyanNeural",       # Inglés Reino Unido, masculina
+    "Justin":    "en-US-AndrewNeural",     # Inglés USA, masculina
+    "Pierre":    "fr-FR-HenriNeural",      # Francés, masculina
+    "Klaus":     "de-DE-ConradNeural",     # Alemán, masculina
 }
 
-# Caché de instancias TTS para no recargar el modelo cada vez
-_tts_cache: dict = {}
-
-def get_tts(lang: str = "es"):
-    """Carga el modelo TTS para el idioma dado, con caché."""
-    from TTS.api import TTS
-
-    if lang not in _tts_cache:
-        model_name = MODELS.get(lang, MODELS["es"])
-        print(f"[TTS] Cargando modelo: {model_name}")
-        _tts_cache[lang] = TTS(model_name=model_name, progress_bar=False)
-        print(f"[TTS] Modelo '{model_name}' cargado correctamente.")
-
-    return _tts_cache[lang]
-
-
-@app.on_event("startup")
-async def startup():
-    """Pre-carga el modelo de español al iniciar el servidor."""
-    print("[TTS] Pre-cargando modelo de español...")
-    get_tts("es")
-    print("[TTS] ✅ Servidor listo en http://localhost:5002")
+# Voz por defecto si no coincide
+DEFAULT_VOICE = "es-ES-AlvaroNeural"
 
 
 @app.get("/")
 def root():
-    return {"status": "ok", "message": "Servidor TTS activo"}
+    return {
+        "status": "ok",
+        "message": "Servidor TTS activo con voces neurales de Microsoft",
+        "voces_disponibles": list(VOCES.keys()),
+    }
+
+
+@app.get("/voces")
+async def listar_voces():
+    """Lista todas las voces disponibles en edge-tts."""
+    voices = await edge_tts.list_voices()
+    spanish = [v for v in voices if v["Locale"].startswith("es")]
+    return {"voces_español": spanish, "total": len(voices)}
 
 
 @app.get("/tts")
 async def text_to_speech(
     text: str = Query(..., description="Texto a convertir en voz", max_length=300),
     lang: str = Query("es", description="Idioma: es, en, pt, fr, de"),
-    voice: str = Query("Enrique", description="Nombre de la voz (informativo)"),
+    voice: str = Query("Enrique", description="Nombre de la voz del bot"),
 ):
     """
-    Convierte texto en audio WAV.
-    Lavalink puede reproducir este audio directamente.
+    Convierte texto en audio MP3.
+    Lavalink puede reproducir este audio directamente vía HTTP.
     """
     if not text.strip():
         return JSONResponse(status_code=400, content={"error": "El texto no puede estar vacío"})
 
-    # Normalizar idioma
-    lang_map = {
-        "es": "es", "pt": "es",  # Portugués usa modelo español como fallback
-        "en": "en",
-        "fr": "es", "de": "es",  # Fallback al español para idiomas sin modelo
-    }
-    model_lang = lang_map.get(lang, "es")
+    # Seleccionar la voz según el nombre del personaje
+    voz_neural = VOCES.get(voice, DEFAULT_VOICE)
 
     try:
-        tts = get_tts(model_lang)
+        # Generar audio con edge-tts en memoria (sin archivos temporales)
+        audio_buffer = io.BytesIO()
 
-        # Generar audio en archivo temporal
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
-            tmp_path = tmp.name
+        communicate = edge_tts.Communicate(text=text, voice=voz_neural)
 
-        tts.tts_to_file(text=text, file_path=tmp_path)
+        async for chunk in communicate.stream():
+            if chunk["type"] == "audio":
+                audio_buffer.write(chunk["data"])
 
-        # Leer el archivo y enviarlo como respuesta
-        with open(tmp_path, "rb") as f:
-            audio_bytes = f.read()
+        audio_buffer.seek(0)
 
-        os.unlink(tmp_path)  # Eliminar archivo temporal
+        if audio_buffer.getbuffer().nbytes == 0:
+            return JSONResponse(status_code=500, content={"error": "No se generó audio"})
+
+        print(f"[TTS] ✅ '{text[:40]}...' | Voz: {voz_neural}")
 
         return StreamingResponse(
-            io.BytesIO(audio_bytes),
-            media_type="audio/wav",
+            audio_buffer,
+            media_type="audio/mpeg",
             headers={
-                "Content-Disposition": f'attachment; filename="tts.wav"',
-                "X-Voice": voice,
+                "Content-Disposition": 'attachment; filename="tts.mp3"',
+                "X-Voice": voz_neural,
                 "X-Lang": lang,
-            }
+            },
         )
 
     except Exception as e:
-        print(f"[TTS] Error generando audio: {e}")
+        print(f"[TTS] ❌ Error: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
 if __name__ == "__main__":
     port = int(os.environ.get("TTS_PORT", 5002))
-    print(f"[TTS] Iniciando servidor en puerto {port}...")
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print("  🎙️  Servidor TTS para Discord Bot")
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print(f"  📍 URL local: http://localhost:{port}")
+    print("  🎤 Voces: Enrique, Valentina, Brian, Justin, Pierre, Klaus")
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     uvicorn.run(app, host="0.0.0.0", port=port, log_level="warning")
