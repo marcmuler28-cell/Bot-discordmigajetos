@@ -114,8 +114,6 @@ client.on("raw", (d) => {
 client.on(Events.MessageCreate, onMessageCreate);
 client.on(Events.GuildMemberAdd, onGuildMemberAdd);
 
-client.on(Events.MessageCreate, onMessageCreate);
-
 const COMMAND_TIMEOUT_MS = 25_000;
 
 client.on(Events.InteractionCreate, async (interaction) => {
