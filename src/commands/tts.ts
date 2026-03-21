@@ -8,18 +8,19 @@ import * as MusicManager from "../music/manager.js";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-async function obtenerUrlTTS(texto: string, voz: string): Promise<string> {
+const VOICE_LANGS: Record<string, string> = {
+  Enrique:   "es",
+  Valentina: "pt-BR",
+  Brian:     "en-GB",
+  Justin:    "en",
+  Pierre:    "fr",
+  Klaus:     "de",
+};
+
+function buildTtsUrl(texto: string, voz: string): string {
+  const lang = VOICE_LANGS[voz] ?? "es";
   const encoded = encodeURIComponent(texto);
-
-  try {
-    const url = `https://api.streamelements.com/kappa/v2/speech?voice=${voz}&text=${encoded}`;
-    const res = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(5000) });
-    if (res.ok || res.status === 302 || res.redirected) return url;
-  } catch {
-    // Falla silenciosa, usamos fallback
-  }
-
-  return `https://translate.google.com/translate_tts?ie=UTF-8&q=${encoded}&tl=es&client=tw-ob&ttsspeed=1`;
+  return `https://translate.google.com/translate_tts?ie=UTF-8&q=${encoded}&tl=${lang}&client=tw-ob&ttsspeed=1`;
 }
 
 export const ttsCommand: BotCommand = {
@@ -39,12 +40,12 @@ export const ttsCommand: BotCommand = {
         .setDescription("Elige la voz (por defecto: Enrique)")
         .setRequired(false)
         .addChoices(
-          { name: "🇪🇸 Enrique — español masculino",    value: "Enrique" },
-          { name: "🇪🇸 Conchita — español femenino",    value: "Conchita" },
-          { name: "🇬🇧 Brian — inglés británico 😂",     value: "Brian" },
-          { name: "👦 Justin — voz de niño",             value: "Justin" },
-          { name: "🤖 Ivy — robótica/graciosa",          value: "Ivy" },
-          { name: "🎭 Joey — dramático americano",       value: "Joey" }
+          { name: "🇪🇸 Enrique — español",              value: "Enrique"   },
+          { name: "🇧🇷 Valentina — portugués brasileño", value: "Valentina" },
+          { name: "🇬🇧 Brian — inglés británico",        value: "Brian"     },
+          { name: "🇺🇸 Justin — inglés americano",       value: "Justin"    },
+          { name: "🇫🇷 Pierre — francés",                value: "Pierre"    },
+          { name: "🇩🇪 Klaus — alemán",                  value: "Klaus"     }
         )
     ),
 
@@ -75,7 +76,7 @@ export const ttsCommand: BotCommand = {
     }
 
     try {
-      const ttsUrl = await obtenerUrlTTS(texto, voz);
+      const ttsUrl = buildTtsUrl(texto, voz);
 
       let player = manager.getPlayer(interaction.guildId);
 
