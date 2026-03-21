@@ -11,9 +11,9 @@ export function initLavalink(client: Client<true>) {
   manager = new LavalinkManager({
     nodes: [
       {
-        // Nodo principal — serenetia (YouTube + SoundCloud confirmados)
-        authorization: "https://dsc.gg/ajidevserver",
-        host: "lavalinkv4.serenetia.com",
+        // Nodo principal — YouTube URL + ytsearch confirmados funcionando
+        authorization: "hope you have a great day",
+        host: "lavalink.serenetia.com",
         port: 443,
         id: "serenetia-primary",
         secure: true,
@@ -22,7 +22,7 @@ export function initLavalink(client: Client<true>) {
         retryDelay: 3000,
       },
       {
-        // Nodo backup — Railway (SoundCloud, menor latencia en la red)
+        // Nodo backup — Railway propio (SoundCloud + red interna)
         authorization: railwayPass,
         host: railwayHost,
         port: railwayPort,
@@ -33,7 +33,7 @@ export function initLavalink(client: Client<true>) {
         retryDelay: 5000,
       },
       {
-        // Nodo terciario — jirayu
+        // Nodo terciario
         authorization: "youshallnotpass",
         host: "lavalink.jirayu.net",
         port: 13592,
@@ -54,7 +54,7 @@ export function initLavalink(client: Client<true>) {
     },
     playerOptions: {
       clientBasedPositionUpdateInterval: 500,
-      defaultSearchPlatform: "scsearch" as SearchPlatform,
+      defaultSearchPlatform: "ytsearch" as SearchPlatform,
       onDisconnect: {
         autoReconnect: true,
         destroyPlayer: false,
@@ -70,7 +70,6 @@ export function initLavalink(client: Client<true>) {
     const channel = client.channels.cache.get(player.textChannelId);
     if (!channel?.isTextBased()) return;
 
-    // Normalizar volumen al 50% para evitar saturación
     try { await player.setVolume(50); } catch {}
 
     const embed = new EmbedBuilder()
