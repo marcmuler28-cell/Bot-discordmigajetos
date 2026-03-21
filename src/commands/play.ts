@@ -6,7 +6,9 @@ import {
 import { BotCommand } from "../index.js";
 import { manager } from "../music/manager.js";
 
-const URL_REGEX = /^https?:///i;
+function isUrl(str: string): boolean {
+  try { new URL(str); return true; } catch { return false; }
+}
 
 export const playCommand: BotCommand = {
   data: new SlashCommandBuilder()
@@ -15,7 +17,7 @@ export const playCommand: BotCommand = {
     .addStringOption((opt) =>
       opt
         .setName("query")
-        .setDescription("Nombre de la canción, artista o URL de YouTube/SoundCloud")
+        .setDescription("Nombre de la canción, artista, URL de YouTube o SoundCloud")
         .setRequired(true)
     ),
 
@@ -54,25 +56,23 @@ export const playCommand: BotCommand = {
         await player.connect();
       }
 
-      const isUrl = URL_REGEX.test(query);
       let result;
 
-      if (isUrl) {
-        // URL directa: YouTube, SoundCloud, etc.
+      if (isUrl(query)) {
+        // URL directa de YouTube, SoundCloud, etc.
         result = await player.search({ query }, interaction.user);
       } else {
-        // Búsqueda por texto: intenta YouTube primero
-        result = await player.search({ query, source: "ytmsearch" }, interaction.user);
-
-        // Si YouTube no encuentra nada, intenta SoundCloud
+        // Texto: busca en SoundCloud (funciona siempre)
+        result = await player.search({ query, source: "scsearch" }, interaction.user);
+        // Si SoundCloud falla, intenta YouTube Music
         if (!result || result.loadType === "error" || result.loadType === "empty") {
-          result = await player.search({ query, source: "scsearch" }, interaction.user);
+          result = await player.search({ query, source: "ytmsearch" }, interaction.user);
         }
       }
 
       if (!result || result.loadType === "error" || result.loadType === "empty") {
         await interaction.editReply(
-          "❌ No encontré ninguna canción con esa búsqueda. Intenta con otro nombre o URL."
+          "❌ No encontré ninguna canción. Intenta con otro nombre o una URL directa de YouTube/SoundCloud."
         );
         return;
       }
@@ -85,7 +85,6 @@ export const playCommand: BotCommand = {
       } else {
         const track = result.tracks[0];
         player.queue.add(track);
-
         if (player.playing || player.paused) {
           await interaction.editReply(
             `➕ Añadido a la cola: **${track.info.title}** — ${track.info.author}`
