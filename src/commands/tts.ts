@@ -8,6 +8,13 @@ import * as MusicManager from "../music/manager.js";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// ── Voces disponibles en el servidor TTS ──────────────────────────────────────
+// Agregar aquí cada voz que tengas en la carpeta voices/ del Space de HuggingFace
+const VOCES_DISPONIBLES = [
+  { name: "🇦🇷 Argentino", value: "argentino" },
+  { name: "🎙️ Voz por defecto", value: "default" },
+];
+
 async function getTtsAudioUrl(texto: string, voz: string): Promise<string> {
   const ttsServerUrl = process.env.TTS_SERVER_URL;
 
@@ -49,13 +56,9 @@ export const ttsCommand: BotCommand = {
     .addStringOption((opt) =>
       opt
         .setName("voz")
-        .setDescription(
-          process.env.TTS_SERVER_URL
-            ? "Nombre de tu voz personalizada (ej: argentino). Debe existir en la carpeta voices/"
-            : "Voz a usar (no hay servidor TTS configurado, se usa Google TTS)"
-        )
+        .setDescription("Elige la voz con la que quieres que hable el bot")
         .setRequired(false)
-        .setMaxLength(50)
+        .addChoices(...VOCES_DISPONIBLES)
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
@@ -73,8 +76,9 @@ export const ttsCommand: BotCommand = {
     }
 
     const texto = interaction.options.getString("texto", true);
-    const voz = interaction.options.getString("voz") ?? "default";
+    const voz = interaction.options.getString("voz") ?? "argentino";
     const usingCustomServer = !!process.env.TTS_SERVER_URL;
+    const vozLabel = VOCES_DISPONIBLES.find((v) => v.value === voz)?.name ?? voz;
 
     await interaction.deferReply({ ephemeral: true });
 
@@ -88,7 +92,7 @@ export const ttsCommand: BotCommand = {
     try {
       // Avisamos que estamos generando (puede tardar)
       if (usingCustomServer) {
-        await interaction.editReply(`⏳ Generando audio con voz **${voz === "default" ? "por defecto" : voz}**... espera un momento.`);
+        await interaction.editReply(`⏳ Generando audio con voz **${vozLabel}**... espera un momento.`);
       }
 
       // Genera el audio y obtiene la URL lista para Lavalink
@@ -130,7 +134,7 @@ export const ttsCommand: BotCommand = {
       if (track.info) {
         track.info.title = `🔊 TTS: ${texto.slice(0, 50)}${texto.length > 50 ? "..." : ""}`;
         track.info.author = usingCustomServer
-          ? `Voz IA: ${voz === "default" ? "por defecto" : voz}`
+          ? `Voz IA: ${vozLabel}`
           : "Voz: Google TTS";
       }
 
@@ -140,7 +144,7 @@ export const ttsCommand: BotCommand = {
         await player.play({ paused: false });
         await interaction.editReply(
           usingCustomServer
-            ? `✅ Reproduciendo con voz **${voz === "default" ? "por defecto" : voz}**: *"${texto}"*`
+            ? `✅ Reproduciendo con voz **${vozLabel}**: *"${texto}"*`
             : `✅ Reproduciendo: *"${texto}"*`
         );
       } else {
