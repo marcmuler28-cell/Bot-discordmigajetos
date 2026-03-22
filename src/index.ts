@@ -96,6 +96,11 @@ const allCommands: BotCommand[] = [
   volumenCommand,
 ];
 
+// Comandos lentos (generación de audio, IA, etc.) tienen más tiempo
+const SLOW_COMMANDS = new Set(["tts", "ia", "historia", "broma"]);
+const DEFAULT_TIMEOUT_MS = 25_000;
+const SLOW_TIMEOUT_MS = 120_000;
+
 for (const command of allCommands) {
   commands.set(command.data.name, command);
 }
@@ -114,8 +119,6 @@ client.on("raw", (d) => {
 client.on(Events.MessageCreate, onMessageCreate);
 client.on(Events.GuildMemberAdd, onGuildMemberAdd);
 
-const COMMAND_TIMEOUT_MS = 25_000;
-
 client.on(Events.InteractionCreate, async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
@@ -130,6 +133,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
     return;
   }
 
+  const timeoutMs = SLOW_COMMANDS.has(interaction.commandName)
+    ? SLOW_TIMEOUT_MS
+    : DEFAULT_TIMEOUT_MS;
+
   let timedOut = false;
   const timeoutId = setTimeout(async () => {
     timedOut = true;
@@ -138,7 +145,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       interaction,
       `⏱️ El comando \`/${interaction.commandName}\` tardó demasiado en responder. Por favor intenta de nuevo.`
     );
-  }, COMMAND_TIMEOUT_MS);
+  }, timeoutMs);
 
   try {
     await command.execute(interaction);
@@ -197,4 +204,3 @@ client.login(token).catch((err) => {
   console.error("❌ Error al iniciar sesión en Discord:", err);
   process.exit(1);
 });
-
