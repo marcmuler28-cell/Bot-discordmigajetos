@@ -8,12 +8,26 @@ import * as MusicManager from "../music/manager.js";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-function buildTtsUrl(texto: string, voz: string): string {
+async function getTtsAudioUrl(texto: string, voz: string): Promise<string> {
   const ttsServerUrl = process.env.TTS_SERVER_URL;
 
   if (ttsServerUrl) {
+    // Paso 1: pedir al servidor que genere el audio y lo guarde en caché
     const encoded = encodeURIComponent(texto);
-    return `${ttsServerUrl}/tts?text=${encoded}&lang=es&voice=${encodeURIComponent(voz)}`;
+    const generateUrl = `${ttsServerUrl}/generate?text=${encoded}&lang=es&voice=${encodeURIComponent(voz)}`;
+
+    const resp = await fetch(generateUrl, {
+      signal: AbortSignal.timeout(90_000), // 90 segundos máximo para generar
+    });
+
+    if (!resp.ok) {
+      throw new Error(`Error del servidor TTS: ${resp.status}`);
+    }
+
+    const data = (await resp.json()) as { token: string; audio_url: string };
+
+    // Paso 2: devolver la URL del audio ya generado (Lavalink la carga al instante)
+    return `${ttsServerUrl}${data.audio_url}`;
   }
 
   // Fallback: Google Translate TTS
@@ -37,8 +51,8 @@ export const ttsCommand: BotCommand = {
         .setName("voz")
         .setDescription(
           process.env.TTS_SERVER_URL
-            ? "Nombre de tu voz personalizada (ej: MiVoz, Enrique). Debe existir en la carpeta voices/"
-            : "Voz a usar (no hay servidor TTS configurado, se usa voz por defecto)"
+            ? "Nombre de tu voz personalizada (ej: argentino). Debe existir en la carpeta voices/"
+            : "Voz a usar (no hay servidor TTS configurado, se usa Google TTS)"
         )
         .setRequired(false)
         .setMaxLength(50)
@@ -72,7 +86,13 @@ export const ttsCommand: BotCommand = {
     }
 
     try {
-      const ttsUrl = buildTtsUrl(texto, voz);
+      // Avisamos que estamos generando (puede tardar)
+      if (usingCustomServer) {
+        await interaction.editReply(`⏳ Generando audio con voz **${voz === "default" ? "por defecto" : voz}**... espera un momento.`);
+      }
+
+      // Genera el audio y obtiene la URL lista para Lavalink
+      const ttsUrl = await getTtsAudioUrl(texto, voz);
 
       let player = manager.getPlayer(interaction.guildId);
 
@@ -101,7 +121,7 @@ export const ttsCommand: BotCommand = {
 
       if (!result || result.loadType === "error" || result.loadType === "empty") {
         await interaction.editReply(
-          `❌ No se pudo cargar el audio TTS (tipo: ${result?.loadType ?? "desconocido"}). Intenta con un texto más corto.`
+          `❌ No se pudo cargar el audio TTS (tipo: ${result?.loadType ?? "desconocido"}).`
         );
         return;
       }
@@ -120,7 +140,7 @@ export const ttsCommand: BotCommand = {
         await player.play({ paused: false });
         await interaction.editReply(
           usingCustomServer
-            ? `✅ Reproduciendo con voz IA **${voz === "default" ? "por defecto" : voz}**: *"${texto}"*`
+            ? `✅ Reproduciendo con voz **${voz === "default" ? "por defecto" : voz}**: *"${texto}"*`
             : `✅ Reproduciendo: *"${texto}"*`
         );
       } else {
