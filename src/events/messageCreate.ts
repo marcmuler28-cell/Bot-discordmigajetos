@@ -1,5 +1,6 @@
 import { Message, TextChannel } from "discord.js";
 import { openai } from "../ai/client.js";
+import { getStory } from "../ai/stories.js";
 
 const CANALES_IGNORADOS = new Set([
   "bienvenida", "welcome", "bienvenidas", "bienvenidos",
@@ -44,10 +45,14 @@ Formato de respuesta:
 Nunca respondas largo. Nunca expliques reglas. Solo corrige o responde OK.`;
 }
 
-function buildReplyPrompt(botMessage: string, userReply: string): string {
+function buildReplyPrompt(botMessage: string, userReply: string, historia?: string): string {
+  const historiaBloque = historia
+    ? `\n\nAdemás, esta persona una vez compartió su historia personal:\n"${historia.slice(0, 800)}"\n\nUSÁ esa historia para picarle donde duele si el contexto lo permite. Hacé una broma o comentario que lo toque en algo que él mismo reveló. Que duela un poco pero que sea gracioso, no hiriente de verdad.`
+    : "";
+
   return `Eres un bot de Discord que habla como un amigo latinoamericano: informal, divertido, con jerga coloquial (bro, pana, loco, etc).
 
-Un usuario te respondió uno de tus mensajes. Debés contestar de forma natural y relevante al contexto.
+Un usuario te respondió uno de tus mensajes. Debés contestar de forma natural, contextual y con personalidad.${historiaBloque}
 
 Tu mensaje anterior fue:
 "${botMessage}"
@@ -55,7 +60,7 @@ Tu mensaje anterior fue:
 El usuario te respondió:
 "${userReply}"
 
-Respondé de forma corta, casual y en el mismo idioma del usuario. Máximo 150 caracteres. Sin listas, sin formalidades.`;
+Respondé de forma corta, casual y en el mismo idioma del usuario. Máximo 180 caracteres. Sin listas, sin formalidades. Si tenés historia del usuario, usala con humor y sin pasarte.`;
 }
 
 export async function onMessageCreate(message: Message): Promise<void> {
@@ -73,32 +78,36 @@ export async function onMessageCreate(message: Message): Promise<void> {
     return;
   }
 
-  // ── 2. Respuesta a un mensaje del bot → IA contextual ───────────────────
+  // ── 2. Respuesta a un mensaje del bot → IA contextual + historia personal
   if (message.reference?.messageId) {
     try {
       const repliedMsg = await message.channel.messages.fetch(message.reference.messageId);
+
       if (repliedMsg.author.id === botUser?.id) {
         const userText = message.content.trim();
-        if (userText && userText.length >= 1) {
-          const response = await openai.chat.completions.create({
-            model: "openai/gpt-4o-mini",
-            messages: [
-              {
-                role: "system",
-                content: buildReplyPrompt(repliedMsg.content, userText),
-              },
-            ],
-            max_tokens: 80,
-            temperature: 0.8,
-          });
+        if (!userText) return;
 
-          const respuesta = response.choices[0]?.message?.content?.trim();
-          if (respuesta) {
-            await message.reply({
-              content: respuesta,
-              allowedMentions: { repliedUser: false },
-            });
-          }
+        // Busca la historia personal del usuario en la base de datos
+        const historia = await getStory(message.author.id);
+
+        const response = await openai.chat.completions.create({
+          model: "openai/gpt-4o-mini",
+          messages: [
+            {
+              role: "system",
+              content: buildReplyPrompt(repliedMsg.content, userText, historia),
+            },
+          ],
+          max_tokens: 100,
+          temperature: 0.85,
+        });
+
+        const respuesta = response.choices[0]?.message?.content?.trim();
+        if (respuesta) {
+          await message.reply({
+            content: respuesta,
+            allowedMentions: { repliedUser: false },
+          });
         }
         return;
       }
