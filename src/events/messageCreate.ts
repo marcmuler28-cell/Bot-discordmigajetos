@@ -1,6 +1,7 @@
 import { Message, TextChannel } from "discord.js";
 import { openai } from "../ai/client.js";
 import { getStory } from "../ai/stories.js";
+import { activeGames } from "../music/gameState.js";
 
 const CANALES_IGNORADOS = new Set([
   "bienvenida", "welcome", "bienvenidas", "bienvenidos",
@@ -29,7 +30,6 @@ Vocabulario que usás (jerga latinoamericana / peruana):
 - flasheaste → no entendiste bien la situación
 - mal ahí → situación de drama o comportamiento inapropiado
 - re turbio / nada que ver → fuera de lugar, comportamiento raro
-- te arde → ¿te dolió?, en tono de burla
 - naaaa / ntp → para relajar
 - xddd / jsjsjs → para reírte o restar tensión
 `.trim();
@@ -84,11 +84,14 @@ export async function onMessageCreate(message: Message): Promise<void> {
   if (message.author.bot) return;
   if (!message.guild) return;
 
+  // ── 0. Si hay un juego activo en este canal, ignorar completamente ───────
+  // Los mensajes durante el juego los maneja el MessageCollector de /adivina.
+  const game = activeGames.get(message.guildId!);
+  if (game && game.textChannelId === message.channelId) return;
+
   const botUser = message.client.user;
 
   // ── 1. Respuesta a un mensaje del bot → prioridad más alta ──────────────
-  // Debe ir ANTES del check de @mención porque Discord agrega automáticamente
-  // una @mención del bot cuando alguien responde uno de sus mensajes.
   if (message.reference?.messageId) {
     try {
       const repliedMsg = await message.channel.messages.fetch(message.reference.messageId);
@@ -137,7 +140,7 @@ export async function onMessageCreate(message: Message): Promise<void> {
     return;
   }
 
-  // ── 3. Moderación de canales (lógica existente) ──────────────────────────
+  // ── 3. Moderación de canales ─────────────────────────────────────────────
   const channel = message.channel as TextChannel;
   const channelName = channel.name?.toLowerCase() ?? "";
 
