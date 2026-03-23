@@ -24,9 +24,19 @@ export const skipCommand: BotCommand = {
     }
 
     const current = player.queue.current;
+    const hasNext = player.queue.tracks.length > 0;
+
+    if (!hasNext) {
+      await player.stopPlaying(true, true);
+      await interaction.reply(
+        `⏹️ Saltada: **${current?.info.title ?? "canción actual"}** — no hay más canciones en la cola.`
+      );
+      return;
+    }
+
     await player.skip();
     await interaction.reply(
-      `⏭️ Saltada: **${current?.info.title || "canción actual"}**`
+      `⏭️ Saltada: **${current?.info.title ?? "canción actual"}**`
     );
   },
 } as unknown as BotCommand;
