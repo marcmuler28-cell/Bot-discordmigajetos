@@ -36,6 +36,40 @@ function esCorrecta(respuesta: string, titulo: string): boolean {
   );
 }
 
+/**
+ * Intenta cargar la canción usando la URL primero (si existe),
+ * y si falla busca automáticamente por título + artista en YouTube.
+ */
+async function buscarCancion(
+  player: ReturnType<typeof manager.getPlayer>,
+  title: string,
+  artist: string,
+  url: string | undefined,
+  user: ChatInputCommandInteraction["user"]
+) {
+  // Intento 1: URL directa (si se proporcionó)
+  if (url) {
+    try {
+      const result = await player!.search({ query: url }, user);
+      if (result && result.loadType !== "error" && result.loadType !== "empty" && result.tracks.length > 0) {
+        return result;
+      }
+    } catch {
+      // URL falló, continúa con búsqueda
+    }
+  }
+
+  // Intento 2: Búsqueda por título + artista en YouTube
+  const query = `${title} ${artist}`;
+  const result = await player!.search({ query, source: "ytsearch" }, user);
+  if (result && result.loadType !== "error" && result.loadType !== "empty" && result.tracks.length > 0) {
+    return result;
+  }
+
+  // Intento 3: YouTube Music como último recurso
+  return await player!.search({ query, source: "ytmsearch" }, user);
+}
+
 export const adivinaCommand: BotCommand = {
   data: new SlashCommandBuilder()
     .setName("adivina")
@@ -64,10 +98,9 @@ export const adivinaCommand: BotCommand = {
       return;
     }
 
-    // Elegir canción aleatoria
     if (CANCIONES.length === 0) {
       await interaction.reply({
-        content: "❌ No hay canciones en la lista todavía.",
+        content: "❌ No hay canciones en la lista todavía. Agrega canciones en `src/music/songList.ts`.",
         flags: MessageFlags.Ephemeral,
       });
       return;
@@ -84,7 +117,7 @@ export const adivinaCommand: BotCommand = {
     activeGames.set(interaction.guildId, {
       songTitle: cancion.title,
       songArtist: cancion.artist,
-      url: cancion.url,
+      url: cancion.url ?? "",
       textChannelId: interaction.channelId,
       answered: false,
     });
@@ -110,9 +143,12 @@ export const adivinaCommand: BotCommand = {
         await sleep(1000);
       }
 
-      const result = await player.search({ query: cancion.url }, interaction.user);
+      const result = await buscarCancion(player, cancion.title, cancion.artist, cancion.url, interaction.user);
+
       if (!result || result.loadType === "error" || result.loadType === "empty" || !result.tracks.length) {
-        await textChannel.send("❌ No pude cargar la canción. Intenta de nuevo.");
+        await textChannel.send(
+          `❌ No pude encontrar la canción **${cancion.title}**. Intenta de nuevo con \`/adivina\`.`
+        );
         activeGames.delete(interaction.guildId);
         return;
       }
@@ -126,20 +162,18 @@ export const adivinaCommand: BotCommand = {
         `🎧 **¡Escucha!** Tienes **1 minuto** para escribir el nombre de la canción en este canal.\n_Tip: no tienes que escribir exactamente, con aproximarte basta._`
       );
 
-      // Detener reproducción después del clip
+      // Detener después del clip
       const clipTimer = setTimeout(async () => {
         const game = activeGames.get(interaction.guildId!);
         if (game && !game.answered) {
           try {
             await player!.stopPlaying(true, true);
             await textChannel.send("⏱️ ¡Se acabó el clip! Todavía tienes tiempo de escribir...");
-          } catch {
-            // silencioso
-          }
+          } catch { /* silencioso */ }
         }
       }, DURACION_CLIP_MS);
 
-      // Collector de mensajes para detectar respuestas
+      // Collector para detectar respuestas
       const collector = textChannel.createMessageCollector({
         time: DURACION_GUESS_MS,
         filter: (msg) => !msg.author.bot,
@@ -154,11 +188,7 @@ export const adivinaCommand: BotCommand = {
           clearTimeout(clipTimer);
           collector.stop("winner");
 
-          const totalPuntos = await sumarPuntosJuego(
-            msg.author.id,
-            msg.author.username,
-            PUNTOS_ACIERTO
-          );
+          const totalPuntos = await sumarPuntosJuego(msg.author.id, msg.author.username, PUNTOS_ACIERTO);
 
           await textChannel.send(
             `🏆 **¡${msg.author.displayName} adivinó!**\n` +
@@ -173,7 +203,6 @@ export const adivinaCommand: BotCommand = {
 
       collector.on("end", async (_collected, reason) => {
         if (reason === "winner") return;
-
         const game = activeGames.get(interaction.guildId!);
         if (game && !game.answered) {
           clearTimeout(clipTimer);
