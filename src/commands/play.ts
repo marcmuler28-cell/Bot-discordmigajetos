@@ -1,7 +1,10 @@
 import {
   ChatInputCommandInteraction,
   GuildMember,
+  MessageFlags,
+  PermissionFlagsBits,
   SlashCommandBuilder,
+  TextChannel,
 } from "discord.js";
 import { BotCommand } from "../index.js";
 import { manager } from "../music/manager.js";
@@ -32,7 +35,29 @@ export const playCommand: BotCommand = {
     if (!voiceChannel) {
       await interaction.reply({
         content: "❌ Debes estar en un canal de voz para usar este comando.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+
+    // Verifica que el bot pueda unirse al canal de voz
+    const botMember = interaction.guild?.members.me;
+    const voicePerms = voiceChannel.permissionsFor(botMember!);
+    if (!voicePerms?.has(PermissionFlagsBits.Connect) || !voicePerms.has(PermissionFlagsBits.Speak)) {
+      await interaction.reply({
+        content: "❌ No tengo permisos para unirme o hablar en tu canal de voz.",
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+
+    // Verifica que el bot pueda enviar mensajes en este canal de texto
+    const textChannel = interaction.channel as TextChannel;
+    const textPerms = textChannel?.permissionsFor(botMember!);
+    if (!textPerms?.has(PermissionFlagsBits.SendMessages) || !textPerms.has(PermissionFlagsBits.ViewChannel)) {
+      await interaction.reply({
+        content: "❌ No tengo permisos para enviar mensajes en este canal.",
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -53,7 +78,6 @@ export const playCommand: BotCommand = {
           volume: 50,
         });
       } else {
-        // Actualiza el canal de texto y voz por si cambió
         player.textChannelId = interaction.channelId;
         if (player.voiceChannelId !== voiceChannel.id) {
           player.voiceChannelId = voiceChannel.id;
@@ -62,7 +86,6 @@ export const playCommand: BotCommand = {
 
       if (!player.connected) {
         await player.connect();
-        // Espera a que la conexión de voz se establezca con Lavalink
         await sleep(1500);
       }
 
@@ -87,7 +110,7 @@ export const playCommand: BotCommand = {
       if (result.loadType === "playlist") {
         player.queue.add(result.tracks);
         await interaction.editReply(
-          `✅ Playlist **${result.playlist?.title || "sin título"}** añadida con **${result.tracks.length}** canciones.`
+          `✅ Playlist **${result.playlist?.title ?? "sin título"}** añadida con **${result.tracks.length}** canciones.`
         );
       } else {
         const track = result.tracks[0];
@@ -110,9 +133,12 @@ export const playCommand: BotCommand = {
       }
     } catch (error) {
       console.error("Error en /play:", error);
-      await interaction.editReply(
-        "❌ Ocurrió un error al intentar reproducir. Intenta de nuevo."
-      );
+      const msg = "❌ Ocurrió un error al intentar reproducir. Revisa que Lavalink esté activo e intenta de nuevo.";
+      if (interaction.deferred) {
+        await interaction.editReply(msg);
+      } else {
+        await interaction.reply({ content: msg, flags: MessageFlags.Ephemeral });
+      }
     }
   },
 } as unknown as BotCommand;
