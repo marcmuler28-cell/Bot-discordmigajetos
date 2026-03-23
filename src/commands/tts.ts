@@ -14,7 +14,6 @@ export const VOCES_FALLBACK = [
   { name: "🎙️ Voz por defecto", value: "default" },
 ];
 
-// Construye el SlashCommandBuilder con las voces que se le pasen
 export function buildTtsData(voces: { name: string; value: string }[]) {
   return new SlashCommandBuilder()
     .setName("tts")
@@ -57,6 +56,8 @@ async function getTtsAudioUrl(texto: string, voz: string): Promise<string> {
   const encoded = encodeURIComponent(texto);
   return `https://translate.google.com/translate_tts?ie=UTF-8&q=${encoded}&tl=es&client=tw-ob&ttsspeed=1`;
 }
+
+const TTS_VOLUME = 80;
 
 export const ttsCommand: BotCommand = {
   data: buildTtsData(VOCES_FALLBACK),
@@ -104,7 +105,7 @@ export const ttsCommand: BotCommand = {
           textChannelId: interaction.channelId,
           selfDeaf: true,
           selfMute: false,
-          volume: 80,
+          volume: TTS_VOLUME,
         });
       } else {
         player.textChannelId = interaction.channelId;
@@ -116,6 +117,11 @@ export const ttsCommand: BotCommand = {
       if (!player.connected) {
         await player.connect();
         await sleep(1500);
+      }
+
+      // Forzar volumen 80 para TTS independientemente del volumen de música
+      if (player.volume !== TTS_VOLUME) {
+        await player.setVolume(TTS_VOLUME, true);
       }
 
       const result = await player.search({ query: ttsUrl }, interaction.user);
