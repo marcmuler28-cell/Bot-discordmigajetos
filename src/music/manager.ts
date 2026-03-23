@@ -1,5 +1,6 @@
 import { LavalinkManager, SearchPlatform } from "lavalink-client";
 import { Client, EmbedBuilder, TextChannel } from "discord.js";
+import { activeGames } from "./gameState.js";
 
 export let manager: LavalinkManager;
 
@@ -58,6 +59,9 @@ export function initLavalink(client: Client<true>) {
   });
 
   manager.on("trackStart", async (player, track) => {
+    // Durante un juego de /adivina no revelamos el nombre de la canción
+    if (activeGames.has(player.guildId)) return;
+
     if (!player.textChannelId) return;
     const channel = client.channels.cache.get(player.textChannelId);
     if (!channel?.isTextBased()) return;
@@ -92,6 +96,9 @@ export function initLavalink(client: Client<true>) {
   });
 
   manager.on("queueEnd", async (player) => {
+    // No anunciar fin de cola durante un juego
+    if (activeGames.has(player.guildId)) return;
+
     if (!player.textChannelId) return;
     const channel = client.channels.cache.get(player.textChannelId);
     if (!channel?.isTextBased()) return;
@@ -130,4 +137,3 @@ export function formatDuration(ms: number): string {
   }
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
-
