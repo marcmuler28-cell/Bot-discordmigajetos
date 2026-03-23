@@ -69,25 +69,21 @@ export async function onMessageCreate(message: Message): Promise<void> {
 
   const botUser = message.client.user;
 
-  // ── 1. @mención directa al bot ──────────────────────────────────────────
-  if (botUser && message.mentions.users.has(botUser.id)) {
-    await message.reply({
-      content: "que quieres oe",
-      allowedMentions: { repliedUser: false },
-    });
-    return;
-  }
-
-  // ── 2. Respuesta a un mensaje del bot → IA contextual + historia personal
+  // ── 1. Respuesta a un mensaje del bot → prioridad más alta ──────────────
+  // Debe ir ANTES del check de @mención porque Discord agrega automáticamente
+  // una @mención del bot cuando alguien responde uno de sus mensajes.
   if (message.reference?.messageId) {
     try {
       const repliedMsg = await message.channel.messages.fetch(message.reference.messageId);
 
       if (repliedMsg.author.id === botUser?.id) {
-        const userText = message.content.trim();
+        const userText = message.content
+          // Elimina la @mención del bot del texto si la hay
+          .replace(/<@!?\d+>/g, "")
+          .trim();
+
         if (!userText) return;
 
-        // Busca la historia personal del usuario en la base de datos
         const historia = await getStory(message.author.id);
 
         const response = await openai.chat.completions.create({
@@ -112,8 +108,17 @@ export async function onMessageCreate(message: Message): Promise<void> {
         return;
       }
     } catch {
-      // Si no se puede obtener el mensaje referenciado, continúa normal
+      // Si no se puede obtener el mensaje referenciado, continúa
     }
+  }
+
+  // ── 2. @mención directa al bot (sin ser reply) ──────────────────────────
+  if (botUser && message.mentions.users.has(botUser.id)) {
+    await message.reply({
+      content: "que quieres oe",
+      allowedMentions: { repliedUser: false },
+    });
+    return;
   }
 
   // ── 3. Moderación de canales (lógica existente) ──────────────────────────
