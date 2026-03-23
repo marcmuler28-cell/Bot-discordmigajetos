@@ -1,21 +1,31 @@
 /**
  * Lista de canciones para el minijuego /adivina
- * Agrega tus canciones aquí con el formato:
- * { title: "Nombre de la canción", artist: "Artista", url: "URL de YouTube" }
+ *
+ * Agrega tus canciones aquí. El campo "url" es OPCIONAL.
+ * Si no pones URL, el bot busca por título + artista en YouTube automáticamente.
+ * Si pones URL y falla (bloqueada), también busca automáticamente como respaldo.
  */
 export interface Song {
   title: string;
   artist: string;
-  url: string;
+  url?: string; // Opcional — si no hay URL, se busca por título+artista
 }
 
 export const CANCIONES: Song[] = [
   // ─── Agrega tus canciones aquí ───────────────────────────────────────────
-  { title: "Shake It Off", artist: "Taylor Swift", url: "https://youtu.be/nfWlot6h_JM?si=ZtNQt8LxL9uAiNRg" },
-  { title: "Esta Noche", artist: "Orquesta Candela", url: "https://youtu.be/X_EXBsQDBs4?si=QklHi3JS-raQqVEG" },
-  { title: "Despacito", artist: "Luis Fonsi ft. Daddy Yankee", url: "https://youtu.be/kJQP7kiw5Fk?si=n8piMzaDq7tLypwE" },
-  { title: "GANGNAM STYLE", artist: "PSY", url: "https://youtu.be/9bZkp7q19f0?si=BIGJrI7fHEGBkTQ-" },
-  //{ title: "Tití Me Preguntó", artist: "Bad Bunny", url: "https://www.youtube.com/watch?v=kQKjSDmVToU" },
-  //{ title: "Hawái", artist: "Maluma", url: "https://www.youtube.com/watch?v=P18GIDJhT2Q" },
-  //{ title: "La Fórmula", artist: "Maluma ft. Marc Anthony", url: "https://www.youtube.com/watch?v=d7LdKDPXBls" },
+  // { title: "Nombre de la canción", artist: "Artista" },
+  // { title: "Nombre de la canción", artist: "Artista", url: "https://youtube.com/..." },
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // Ejemplos de placeholder (puedes reemplazar o agregar los tuyos):
+  { title: "Despacito", artist: "Luis Fonsi ft. Daddy Yankee" },
+  { title: "Tití Me Preguntó", artist: "Bad Bunny" },
+  { title: "Hawái", artist: "Maluma" },
+  { title: "Dákiti", artist: "Bad Bunny & Jhay Cortez" },
+  { title: "Un Verano Sin Ti", artist: "Bad Bunny" },
+  { title: "Yonaguni", artist: "Bad Bunny" },
+  { title: "La Canción", artist: "J Balvin & Bad Bunny" },
+  { title: "Otra Noche en Miami", artist: "Bad Bunny" },
+  { title: "Pepas", artist: "Farruko" },
+  { title: "Efecto", artist: "Bad Bunny" },
 ];
