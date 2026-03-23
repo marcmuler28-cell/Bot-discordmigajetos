@@ -12,6 +12,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 // Agregar aquí cada voz que tengas en la carpeta voices/ del Space de HuggingFace
 const VOCES_DISPONIBLES = [
   { name: "🇦🇷 Argentino", value: "argentino" },
+  { name: "🎤 Marc", value: "marc" },
   { name: "🎙️ Voz por defecto", value: "default" },
 ];
 
