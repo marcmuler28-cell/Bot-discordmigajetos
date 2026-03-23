@@ -11,9 +11,12 @@ import { CANCIONES } from "../music/songList.js";
 import { activeGames } from "../music/gameState.js";
 import { sumarPuntosJuego } from "../db/puntosJuego.js";
 
-const DURACION_CLIP_MS = 10_000;   // 10 segundos de audio
+const DURACION_CLIP_MS = 25_000;   // 25 segundos de audio
 const DURACION_GUESS_MS = 60_000;  // 1 minuto para adivinar
 const PUNTOS_ACIERTO = 10;
+
+// Guarda la última canción usada por servidor para no repetirla
+const ultimaCancionPorGuild = new Map<string, string>();
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -36,10 +39,21 @@ function esCorrecta(respuesta: string, titulo: string): boolean {
   );
 }
 
-/**
- * Intenta cargar la canción usando la URL primero (si existe),
- * y si falla busca automáticamente por título + artista en YouTube.
- */
+function elegirCancionAleatoria(guildId: string) {
+  if (CANCIONES.length === 1) return CANCIONES[0];
+
+  const ultima = ultimaCancionPorGuild.get(guildId);
+  let candidatas = CANCIONES;
+
+  // Excluir la última canción usada para no repetir
+  if (ultima) {
+    const filtradas = CANCIONES.filter(c => c.title !== ultima);
+    if (filtradas.length > 0) candidatas = filtradas;
+  }
+
+  return candidatas[Math.floor(Math.random() * candidatas.length)];
+}
+
 async function buscarCancion(
   player: ReturnType<typeof manager.getPlayer>,
   title: string,
@@ -73,7 +87,7 @@ async function buscarCancion(
 export const adivinaCommand: BotCommand = {
   data: new SlashCommandBuilder()
     .setName("adivina")
-    .setDescription("🎵 ¡Adivina la canción! Se reproducen 10 segundos y tienes 1 minuto para responder"),
+    .setDescription("🎵 ¡Adivina la canción! Se reproducen 25 segundos y tienes 1 minuto para responder"),
 
   async execute(interaction: ChatInputCommandInteraction) {
     if (!interaction.guildId) return;
@@ -106,7 +120,9 @@ export const adivinaCommand: BotCommand = {
       return;
     }
 
-    const cancion = CANCIONES[Math.floor(Math.random() * CANCIONES.length)];
+    const cancion = elegirCancionAleatoria(interaction.guildId);
+    ultimaCancionPorGuild.set(interaction.guildId, cancion.title);
+
     const textChannel = interaction.channel as TextChannel;
 
     await interaction.reply(
@@ -162,7 +178,7 @@ export const adivinaCommand: BotCommand = {
         `🎧 **¡Escucha!** Tienes **1 minuto** para escribir el nombre de la canción en este canal.\n_Tip: no tienes que escribir exactamente, con aproximarte basta._`
       );
 
-      // Detener después del clip
+      // Detener después del clip (25 segundos)
       const clipTimer = setTimeout(async () => {
         const game = activeGames.get(interaction.guildId!);
         if (game && !game.answered) {
