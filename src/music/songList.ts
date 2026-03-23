@@ -28,4 +28,16 @@ export const CANCIONES: Song[] = [
   { title: "Otra Noche en Miami", artist: "Bad Bunny" },
   { title: "Pepas", artist: "Farruko" },
   { title: "Efecto", artist: "Bad Bunny" },
+  { title: "Lo Aprendí de Ti", artist: "HA-ASH" },
+{ title: "No Te Quiero Nada", artist: "HA-ASH" },
+{ title: "Eso No Va a Suceder", artist: "HA-ASH" },
+{ title: "¿Qué Me Faltó?", artist: "HA-ASH" },
+{ title: "La Carta", artist: "Corazón Serrano" },
+{ title: "Vete", artist: "Corazón Serrano" },
+{ title: "Me Vas a Extrañar", artist: "Corazón Serrano" },
+{ title: "Que Pena", artist: "Corazón Serrano" },
+{ title: "Motor y Motivo", artist: "Grupo 5" },
+{ title: "La Culebra", artist: "Grupo 5" },
+{ title: "Te Prometo Olvidarte", artist: "Grupo 5" },
+{ title: "puro corazon", artist: "Grupo 5" }
 ];
