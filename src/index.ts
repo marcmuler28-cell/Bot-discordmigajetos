@@ -38,6 +38,8 @@ import { queueCommand } from "./commands/queue.js";
 import { nowplayingCommand } from "./commands/nowplaying.js";
 import { volumenCommand } from "./commands/volumen.js";
 import { initLavalink, manager } from "./music/manager.js";
+// ── Minijuego ────────────────────────────────────────────────────────────────
+import { adivinaCommand } from "./commands/adivina.js";
 
 export interface BotCommand {
   data: {
@@ -94,6 +96,8 @@ const allCommands: BotCommand[] = [
   queueCommand,
   nowplayingCommand,
   volumenCommand,
+  // Minijuego
+  adivinaCommand,
 ];
 
 const SLOW_COMMANDS = new Set(["tts", "ia", "historia", "broma"]);
@@ -134,54 +138,27 @@ client.on(Events.InteractionCreate, async (interaction) => {
   const isSlowCommand = SLOW_COMMANDS.has(interaction.commandName);
   const timeoutMs = isSlowCommand ? SLOW_TIMEOUT_MS : DEFAULT_TIMEOUT_MS;
 
-  let timedOut = false;
-  const timeoutId = setTimeout(() => {
-    timedOut = true;
+  const timeout = setTimeout(() => {
+    safeReply(interaction, "⏱️ El comando tardó demasiado. Intenta de nuevo.").catch(() => {});
   }, timeoutMs);
 
   try {
-    await command.execute(interaction as never);
+    await command.execute(interaction);
   } catch (error) {
-    if (timedOut) {
-      await safeReply(
-        interaction,
-        isSlowCommand
-          ? `⏱️ El comando \`/${interaction.commandName}\` tardó demasiado. Intenta de nuevo.`
-          : `❌ Ocurrió un error al ejecutar \`/${interaction.commandName}\`. Intenta de nuevo en unos segundos.`
-      );
-    } else {
-      console.error(`Error ejecutando ${interaction.commandName}:`, error);
-      await safeReply(
-        interaction,
-        isSlowCommand
-          ? `⏱️ El comando \`/${interaction.commandName}\` tardó demasiado. Intenta de nuevo.`
-          : `❌ Ocurrió un error al ejecutar \`/${interaction.commandName}\`. Intenta de nuevo en unos segundos.`
-      );
-    }
+    console.error(`Error ejecutando ${interaction.commandName}:`, error);
+    await safeReply(interaction, "❌ Ocurrió un error al ejecutar el comando.");
   } finally {
-    clearTimeout(timeoutId);
+    clearTimeout(timeout);
   }
 });
 
-async function fetchVoicesFromTts(): Promise<{ name: string; value: string }[]> {
-  const ttsServerUrl = process.env.TTS_SERVER_URL;
-  if (!ttsServerUrl) return VOCES_FALLBACK;
-
+async function fetchVoicesFromTts(): Promise<string[]> {
   try {
-    const resp = await fetch(`${ttsServerUrl}/voces`, {
-      signal: AbortSignal.timeout(10_000),
-    });
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const data = (await resp.json()) as { voces: string[] };
-    const voces = data.voces.map((v) => ({
-      name: v.charAt(0).toUpperCase() + v.slice(1),
-      value: v,
-    }));
-    voces.push({ name: "🎙️ Voz por defecto", value: "default" });
-    console.log(`🎤 Voces cargadas desde TTS: ${voces.map((v) => v.value).join(", ")}`);
-    return voces;
-  } catch (err) {
-    console.warn("⚠️ No se pudieron cargar voces desde TTS, usando fallback:", err);
+    const res = await fetch(`${process.env.TTS_URL ?? "http://localhost:5000"}/voices`);
+    if (!res.ok) throw new Error("TTS server not available");
+    const data = await res.json() as { voices: string[] };
+    return data.voices ?? VOCES_FALLBACK;
+  } catch {
     return VOCES_FALLBACK;
   }
 }
