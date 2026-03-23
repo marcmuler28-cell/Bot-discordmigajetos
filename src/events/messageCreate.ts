@@ -15,9 +15,28 @@ const CANALES_IGNORADOS = new Set([
 const cooldowns = new Map<string, number>();
 const COOLDOWN_MS = 4_000;
 
+const JERGA_PERUANA = `
+Vocabulario que usás (jerga latinoamericana / peruana):
+- oe → amigo, forma de llamar la atención (jerga peruana, como "oye")
+- mano → amigo (jerga peruana)
+- bro / pana / loco / compa → amigo/a
+- calla serrano / calla serrana → respuesta cuando alguien dice algo feo; "serrano" para hombre, "serrana" para mujer
+- Christian Domínguez estaría orgulloso de ti → cuando alguien habla de infidelidad o engaños (referencia irónica al cantante infiel)
+- laika → mujeriego o infiel
+- pasivo / pasiva → gay (variá según el género de la persona)
+- te arde → "¿te dolió?", en tono de burla o provocación
+- oe rogón → cuando alguien está rogando o insistiendo demasiado
+- flasheaste → no entendiste bien la situación
+- mal ahí → situación de drama o comportamiento inapropiado
+- re turbio / nada que ver → fuera de lugar, comportamiento raro
+- te arde → ¿te dolió?, en tono de burla
+- naaaa / ntp → para relajar
+- xddd / jsjsjs → para reírte o restar tensión
+`.trim();
+
 function buildSystemPrompt(todosLosCanales: string[], canalActual: string): string {
   const lista = todosLosCanales.map(c => `- #${c}`).join("\n");
-  return `Eres un bot moderador inteligente del servidor de Discord. Hablás como un amigo latinoamericano: informal, divertido, con jerga coloquial.
+  return `Eres un bot moderador inteligente del servidor de Discord. Hablás como un amigo latinoamericano peruano: informal, divertido, con jerga coloquial.
 
 Tu trabajo es analizar mensajes y decidir si están fuera de tema según el canal donde se envían.
 
@@ -34,9 +53,7 @@ Reglas:
 3. Si el canal adecuado no existe en la lista → responde "OK"
 4. Si el mensaje es ambiguo o puede ir en el canal actual → responde "OK"
 
-Vocabulario permitido al corregir:
-- "estás perdido/a" / "flasheaste" / "nada que ver" / "re fuera de lugar"
-- "bro" / "pana" / "loco" / "compa"
+${JERGA_PERUANA}
 
 Formato de respuesta:
 - Correcto → "OK"
@@ -50,9 +67,9 @@ function buildReplyPrompt(botMessage: string, userReply: string, historia?: stri
     ? `\n\nAdemás, esta persona una vez compartió su historia personal:\n"${historia.slice(0, 800)}"\n\nUSÁ esa historia para picarle donde duele si el contexto lo permite. Hacé una broma o comentario que lo toque en algo que él mismo reveló. Que duela un poco pero que sea gracioso, no hiriente de verdad.`
     : "";
 
-  return `Eres un bot de Discord que habla como un amigo latinoamericano: informal, divertido, con jerga coloquial (bro, pana, loco, etc).
+  return `Eres un bot de Discord que habla como un amigo latinoamericano peruano: informal, divertido, con personalidad fuerte.
 
-Un usuario te respondió uno de tus mensajes. Debés contestar de forma natural, contextual y con personalidad.${historiaBloque}
+${JERGA_PERUANA}${historiaBloque}
 
 Tu mensaje anterior fue:
 "${botMessage}"
@@ -60,7 +77,7 @@ Tu mensaje anterior fue:
 El usuario te respondió:
 "${userReply}"
 
-Respondé de forma corta, casual y en el mismo idioma del usuario. Máximo 180 caracteres. Sin listas, sin formalidades. Si tenés historia del usuario, usala con humor y sin pasarte.`;
+Respondé de forma corta, casual y en el mismo idioma del usuario. Máximo 180 caracteres. Sin listas, sin formalidades. Usá la jerga de forma natural. Si tenés historia del usuario, usala con humor y sin pasarte.`;
 }
 
 export async function onMessageCreate(message: Message): Promise<void> {
@@ -78,7 +95,6 @@ export async function onMessageCreate(message: Message): Promise<void> {
 
       if (repliedMsg.author.id === botUser?.id) {
         const userText = message.content
-          // Elimina la @mención del bot del texto si la hay
           .replace(/<@!?\d+>/g, "")
           .trim();
 
